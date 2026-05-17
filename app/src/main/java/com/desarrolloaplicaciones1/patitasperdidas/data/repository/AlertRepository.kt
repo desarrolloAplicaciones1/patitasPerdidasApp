@@ -3,7 +3,7 @@ package com.desarrolloaplicaciones1.patitasperdidas.data.repository
 import com.desarrolloaplicaciones1.patitasperdidas.data.local.dao.AlertDao
 import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toDomain
 import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toEntity
-import com.desarrolloaplicaciones1.patitasperdidas.data.remote.FirestoreAlertDataSource
+import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreAlertDataSource
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.Alert
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.AlertStatus
 import kotlinx.coroutines.flow.Flow

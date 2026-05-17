@@ -1,4 +1,4 @@
-package com.desarrolloaplicaciones1.patitasperdidas.ui.splash
+package com.desarrolloaplicaciones1.patitasperdidas.presentation.splash
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

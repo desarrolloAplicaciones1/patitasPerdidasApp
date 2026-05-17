@@ -3,7 +3,7 @@ package com.desarrolloaplicaciones1.patitasperdidas.data.repository
 import com.desarrolloaplicaciones1.patitasperdidas.data.local.dao.UserDao
 import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toDomain
 import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toEntity
-import com.desarrolloaplicaciones1.patitasperdidas.data.remote.FirebaseAuthDataSource
+import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirebaseAuthDataSource
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

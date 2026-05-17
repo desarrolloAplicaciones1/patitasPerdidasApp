@@ -1,4 +1,4 @@
-package com.desarrolloaplicaciones1.patitasperdidas.data.remote
+package com.desarrolloaplicaciones1.patitasperdidas.data.network
 
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.Alert
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.AlertStatus

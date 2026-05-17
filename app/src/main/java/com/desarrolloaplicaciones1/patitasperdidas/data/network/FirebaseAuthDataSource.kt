@@ -1,4 +1,4 @@
-package com.desarrolloaplicaciones1.patitasperdidas.data.remote
+package com.desarrolloaplicaciones1.patitasperdidas.data.network
 
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await

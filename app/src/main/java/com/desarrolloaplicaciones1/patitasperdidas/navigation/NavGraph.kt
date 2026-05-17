@@ -6,11 +6,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.desarrolloaplicaciones1.patitasperdidas.ui.auth.LoginScreen
-import com.desarrolloaplicaciones1.patitasperdidas.ui.auth.RegisterScreen
-import com.desarrolloaplicaciones1.patitasperdidas.ui.home.HomeScreen
-import com.desarrolloaplicaciones1.patitasperdidas.ui.onboarding.OnboardingScreen
-import com.desarrolloaplicaciones1.patitasperdidas.ui.splash.SplashScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.auth.LoginScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.auth.RegisterScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.home.HomeScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.onboarding.OnboardingScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.splash.SplashScreen
 
 @Composable
 fun NavGraph(

@@ -1,4 +1,4 @@
-package com.desarrolloaplicaciones1.patitasperdidas.ui.auth
+package com.desarrolloaplicaciones1.patitasperdidas.presentation.auth
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
