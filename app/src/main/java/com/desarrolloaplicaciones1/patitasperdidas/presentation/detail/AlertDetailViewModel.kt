@@ -1,12 +1,9 @@
-package com.desarrolloaplicaciones1.patitasperdidas.presentation.detail
+﻿package com.desarrolloaplicaciones1.patitasperdidas.presentation.detail
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.desarrolloaplicaciones1.patitasperdidas.data.local.AppDatabase
-import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toDomain
-import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreAlertDataSource
-import com.desarrolloaplicaciones1.patitasperdidas.data.repository.AlertRepository
+import com.desarrolloaplicaciones1.patitasperdidas.PatitasPerdidasApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,10 +11,10 @@ import kotlinx.coroutines.launch
 
 class AlertDetailViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val alertRepository = AlertRepository.getInstance(
-        AppDatabase.getInstance(application).alertDao(),
-        FirestoreAlertDataSource()
-    )
+    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val getAlertByIdUseCase = appContainer.getAlertByIdUseCase
+    private val resolveAlertUseCase = appContainer.resolveAlertUseCase
+    private val deleteAlertUseCase = appContainer.deleteAlertUseCase
 
     private val _uiState = MutableStateFlow<AlertDetailUiState>(AlertDetailUiState.Loading)
     val uiState: StateFlow<AlertDetailUiState> = _uiState.asStateFlow()
@@ -26,11 +23,9 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _uiState.value = AlertDetailUiState.Loading
             try {
-                val alert = AppDatabase.getInstance(getApplication())
-                    .alertDao()
-                    .getById(alertId)
+                val alert = getAlertByIdUseCase(alertId)
                 if (alert != null) {
-                    _uiState.value = AlertDetailUiState.Success(alert.toDomain())
+                    _uiState.value = AlertDetailUiState.Success(alert)
                 } else {
                     _uiState.value = AlertDetailUiState.Error("Aviso no encontrado")
                 }
@@ -44,7 +39,7 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
         val current = (_uiState.value as? AlertDetailUiState.Success)?.alert ?: return
         viewModelScope.launch {
             try {
-                alertRepository.resolveAlert(current)
+                resolveAlertUseCase(current)
                 _uiState.value = AlertDetailUiState.Resolved
             } catch (e: Exception) {
                 _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al resolver aviso")
@@ -56,7 +51,7 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
         val current = (_uiState.value as? AlertDetailUiState.Success)?.alert ?: return
         viewModelScope.launch {
             try {
-                alertRepository.deleteAlert(current)
+                deleteAlertUseCase(current)
                 _uiState.value = AlertDetailUiState.Deleted
             } catch (e: Exception) {
                 _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al eliminar aviso")
