@@ -1,13 +1,9 @@
-package com.desarrolloaplicaciones1.patitasperdidas.presentation.profile
+﻿package com.desarrolloaplicaciones1.patitasperdidas.presentation.profile
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.desarrolloaplicaciones1.patitasperdidas.data.local.AppDatabase
-import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirebaseAuthDataSource
-import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreAlertDataSource
-import com.desarrolloaplicaciones1.patitasperdidas.data.repository.AlertRepository
-import com.desarrolloaplicaciones1.patitasperdidas.data.repository.UserRepository
+import com.desarrolloaplicaciones1.patitasperdidas.PatitasPerdidasApplication
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -16,17 +12,11 @@ import kotlinx.coroutines.flow.stateIn
 
 class MyAlertsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getInstance(application)
-
-    private val userRepository = UserRepository.getInstance(
-        db.userDao(), FirebaseAuthDataSource()
-    )
-    private val alertRepository = AlertRepository.getInstance(
-        db.alertDao(), FirestoreAlertDataSource()
-    )
+    private val getMyAlertsUseCase =
+        (application as PatitasPerdidasApplication).appContainer.getMyAlertsUseCase
 
     val uiState: StateFlow<MyAlertsUiState> =
-        alertRepository.getMyAlerts(userRepository.currentUserId ?: "")
+        getMyAlertsUseCase()
             .map { alerts -> MyAlertsUiState.Success(alerts) as MyAlertsUiState }
             .catch { e -> emit(MyAlertsUiState.Error(e.message ?: "Error al cargar tus avisos")) }
             .stateIn(

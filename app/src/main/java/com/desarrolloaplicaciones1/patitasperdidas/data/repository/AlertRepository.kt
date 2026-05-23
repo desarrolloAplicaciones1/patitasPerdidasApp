@@ -6,20 +6,24 @@ import com.desarrolloaplicaciones1.patitasperdidas.data.mapper.toEntity
 import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreAlertDataSource
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.Alert
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.AlertStatus
+import com.desarrolloaplicaciones1.patitasperdidas.domain.repository.AlertRepository as AlertRepositoryContract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class AlertRepository(
     private val alertDao: AlertDao,
     private val remoteDataSource: FirestoreAlertDataSource
-) {
-    fun getActiveAlerts(): Flow<List<Alert>> =
+) : AlertRepositoryContract {
+    override fun getActiveAlerts(): Flow<List<Alert>> =
         alertDao.getActiveAlerts().map { it.map { entity -> entity.toDomain() } }
 
-    fun getMyAlerts(uid: String): Flow<List<Alert>> =
+    override fun getMyAlerts(uid: String): Flow<List<Alert>> =
         alertDao.getMyAlerts(uid).map { it.map { entity -> entity.toDomain() } }
 
-    suspend fun saveAlert(alert: Alert) {
+    override suspend fun getById(id: String): Alert? =
+        alertDao.getById(id)?.toDomain()
+
+    override suspend fun saveAlert(alert: Alert) {
         alertDao.insert(alert.toEntity(pendingSync = true))
         try {
             remoteDataSource.saveAlert(alert)
@@ -29,7 +33,7 @@ class AlertRepository(
         }
     }
 
-    suspend fun updateAlert(alert: Alert) {
+    override suspend fun updateAlert(alert: Alert) {
         alertDao.update(alert.toEntity(pendingSync = true))
         try {
             remoteDataSource.updateAlert(alert)
@@ -37,7 +41,7 @@ class AlertRepository(
         } catch (e: Exception) { }
     }
 
-    suspend fun resolveAlert(alert: Alert) {
+    override suspend fun resolveAlert(alert: Alert) {
         val resolved = alert.copy(
             status = AlertStatus.RESOLVED,
             updatedAt = System.currentTimeMillis()
@@ -45,14 +49,14 @@ class AlertRepository(
         updateAlert(resolved)
     }
 
-    suspend fun deleteAlert(alert: Alert) {
+    override suspend fun deleteAlert(alert: Alert) {
         alertDao.delete(alert.toEntity())
         try {
             remoteDataSource.deleteAlert(alert.id)
         } catch (e: Exception) { }
     }
 
-    suspend fun syncFromFirestore() {
+    override suspend fun syncFromFirestore() {
         try {
             remoteDataSource.getActiveAlerts()
                 .forEach { alertDao.insert(it.toEntity(pendingSync = false)) }
