@@ -15,22 +15,27 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
+    private val appContainer = (application as PatitasPerdidasApplication).appContainer
 
-    private val getActiveAlertsUseCase =
-        (application as PatitasPerdidasApplication).appContainer.getActiveAlertsUseCase
+    private val getActiveAlertsUseCase = appContainer.getActiveAlertsUseCase
+    private val getCurrentUserUseCase = appContainer.getCurrentUserUseCase
 
     private val _filterState = MutableStateFlow(HomeFilterState())
     val filterState: StateFlow<HomeFilterState> = _filterState.asStateFlow()
 
     val uiState: StateFlow<HomeUiState> = combine(
         getActiveAlertsUseCase(),
-        _filterState
-    ) { alerts, filter ->
+        _filterState,
+        getCurrentUserUseCase()
+    ) { alerts, filter, user ->
         val filtered = alerts.filter { alert ->
             (filter.petType == null || alert.petType == filter.petType) &&
                 (filter.alertType == null || alert.type == filter.alertType)
         }
-        HomeUiState.Success(filtered) as HomeUiState
+        HomeUiState.Success(
+            alerts = filtered,
+            currentUserName = user?.name
+        ) as HomeUiState
     }
         .catch { e -> emit(HomeUiState.Error(e.message ?: "Error al cargar avisos")) }
         .stateIn(

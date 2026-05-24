@@ -55,6 +55,7 @@ fun HomeScreen(
 ) {
     val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
     val filterState by viewModel.filterState.collectAsStateWithLifecycle()
+    val currentUserName = (uiState as? HomeUiState.Success)?.currentUserName
     var showFilterDialog by remember { mutableStateOf(false) }
     var showReportSheet  by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -140,7 +141,10 @@ fun HomeScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)) {
-            HomeHeader(onFilterClick = { showFilterDialog = true })
+            HomeHeader(
+                userName = currentUserName,
+                onFilterClick = { showFilterDialog = true }
+            )
             CreateAlertBanner(onClick = { showReportSheet = true })
 
             when (val state = uiState) {
@@ -183,14 +187,20 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeHeader(onFilterClick: () -> Unit) {
+private fun HomeHeader(userName: String?, onFilterClick: () -> Unit) {
+    val greeting = userName
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { "Hola, $it!" }
+        ?: "Hola!"
+
     Row(
         modifier = Modifier.fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = 72.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Hola Valentina!", fontFamily = Urbanist, fontWeight = FontWeight.Normal,
+            Text(greeting, fontFamily = Urbanist, fontWeight = FontWeight.Normal,
                 fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("¿Estás lista para ayudar?", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
                 fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)

@@ -188,7 +188,16 @@ fun ProfileScreen(
 
         when (val state = uiState) {
             is ProfileUiState.Success -> UserSection(user = state.user, darkMode = isDark)
-            else -> MockUserSection(darkMode = isDark)
+            is ProfileUiState.Error -> ProfileStatusSection(
+                title = "Perfil no disponible",
+                subtitle = state.message,
+                darkMode = isDark
+            )
+            ProfileUiState.Loading -> ProfileStatusSection(
+                title = "Cargando perfil",
+                subtitle = "Estamos recuperando tus datos.",
+                darkMode = isDark
+            )
         }
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE))
@@ -226,14 +235,19 @@ fun ProfileScreen(
                     }
                 }
             }
-            else -> {
-                Surface(shape = RoundedCornerShape(12.dp), color = cardBgDynamic, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    Column {
-                        MockReporteItem("Max", "Perdido · Hace 2 dias", darkMode = isDark, onClick = {})
-                        HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
-                        MockReporteItem("Michi", "Encontrado · Hace 1 semana", darkMode = isDark, onClick = {})
-                    }
-                }
+            is ProfileUiState.Error -> {
+                ProfileMessageCard(
+                    message = state.message,
+                    darkMode = isDark,
+                    backgroundColor = cardBgDynamic
+                )
+            }
+            ProfileUiState.Loading -> {
+                ProfileMessageCard(
+                    message = "Cargando tus reportes...",
+                    darkMode = isDark,
+                    backgroundColor = cardBgDynamic
+                )
             }
         }
 
@@ -303,8 +317,10 @@ fun ProfileScreen(
 
         Surface(shape = RoundedCornerShape(12.dp), color = cardBgDynamic, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Column {
-                CuentaItem("Editar perfil", darkMode = isDark, onClick = onNavigateToEditProfile)
-                HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
+                if (uiState is ProfileUiState.Success) {
+                    CuentaItem("Editar perfil", darkMode = isDark, onClick = onNavigateToEditProfile)
+                    HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
+                }
                 CuentaItem("Cerrar sesion", isDestructive = true, darkMode = isDark, onClick = { showLogoutDialog = true })
             }
         }
@@ -331,16 +347,22 @@ private fun UserSection(user: User, darkMode: Boolean) {
 }
 
 @Composable
-private fun MockUserSection(darkMode: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(64.dp).clip(CircleShape).background(HuellitasTeal), contentAlignment = Alignment.Center) {
-            Text("V", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Color.White)
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text("Valentin Arce", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (darkMode) Color.White else Color(0xFF1C1C1C))
-            Text("test@gmail.com", fontFamily = Urbanist, fontSize = 14.sp, color = Color(0xFF888888))
-        }
+private fun ProfileStatusSection(title: String, subtitle: String, darkMode: Boolean) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            text = title,
+            fontFamily = Urbanist,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = if (darkMode) Color.White else Color(0xFF1C1C1C)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = subtitle,
+            fontFamily = Urbanist,
+            fontSize = 14.sp,
+            color = Color(0xFF888888)
+        )
     }
 }
 
@@ -367,7 +389,7 @@ private fun ReporteItem(alert: Alert, darkMode: Boolean, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(alert.petName, fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = if (darkMode) Color.White else Color(0xFF1C1C1C))
-                Text("${if (alert.type == AlertType.LOST) "Perdido" else "Encontrado"} · ${timeAgo(alert.createdAt)}", fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
+                Text("${if (alert.type == AlertType.LOST) "Perdido" else "Encontrado"} - ${timeAgo(alert.createdAt)}", fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
             }
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF888888), modifier = Modifier.size(18.dp))
         }
@@ -375,18 +397,22 @@ private fun ReporteItem(alert: Alert, darkMode: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MockReporteItem(nombre: String, estado: String, darkMode: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = Color.Transparent) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFDDEEEE)), contentAlignment = Alignment.Center) {
-                Text("Pet", fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(nombre, fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = if (darkMode) Color.White else Color(0xFF1C1C1C))
-                Text(estado, fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF888888), modifier = Modifier.size(18.dp))
+private fun ProfileMessageCard(message: String, darkMode: Boolean, backgroundColor: Color) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = message,
+                fontFamily = Urbanist,
+                fontSize = 14.sp,
+                color = if (darkMode) Color(0xFFBDBDBD) else Color(0xFF666666)
+            )
         }
     }
 }
@@ -412,3 +438,4 @@ private fun timeAgo(timestamp: Long): String {
         else -> "Hace ${days}d"
     }
 }
+

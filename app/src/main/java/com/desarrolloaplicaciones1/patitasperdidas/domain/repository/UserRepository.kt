@@ -8,6 +8,7 @@ interface UserRepository {
 
     fun isLoggedIn(): Boolean
     fun getUser(uid: String): Flow<User?>
+    suspend fun syncCurrentUserProfile(): User?
     suspend fun register(email: String, password: String): String
     suspend fun login(email: String, password: String): String
     fun logout()

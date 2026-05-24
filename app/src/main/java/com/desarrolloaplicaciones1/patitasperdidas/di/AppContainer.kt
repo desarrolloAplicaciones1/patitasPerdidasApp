@@ -4,6 +4,7 @@ import android.content.Context
 import com.desarrolloaplicaciones1.patitasperdidas.data.local.AppDatabase
 import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirebaseAuthDataSource
 import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreAlertDataSource
+import com.desarrolloaplicaciones1.patitasperdidas.data.network.FirestoreUserDataSource
 import com.desarrolloaplicaciones1.patitasperdidas.data.repository.AndroidGeocodingRepository
 import com.desarrolloaplicaciones1.patitasperdidas.data.repository.AlertRepository as AlertRepositoryImpl
 import com.desarrolloaplicaciones1.patitasperdidas.data.repository.FirebasePhotoStorageRepository
@@ -42,6 +43,7 @@ import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.settings.SetDa
 import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.settings.SetOfflineModeUseCase
 import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.user.ChangePasswordUseCase
 import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.user.GetCurrentUserUseCase
+import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.user.SyncCurrentUserProfileUseCase
 import com.desarrolloaplicaciones1.patitasperdidas.domain.usecase.user.UpdateUserProfileUseCase
 
 class AppContainer(context: Context) {
@@ -49,9 +51,10 @@ class AppContainer(context: Context) {
 
     private val authDataSource = FirebaseAuthDataSource()
     private val firestoreAlertDataSource = FirestoreAlertDataSource()
+    private val firestoreUserDataSource = FirestoreUserDataSource()
 
     private val userRepository: UserRepositoryContract =
-        UserRepositoryImpl(database.userDao(), authDataSource)
+        UserRepositoryImpl(database.userDao(), authDataSource, firestoreUserDataSource)
 
     private val petRepository: PetRepositoryContract =
         PetRepositoryImpl(database.petDao())
@@ -75,6 +78,7 @@ class AppContainer(context: Context) {
     val registerUserUseCase = RegisterUserUseCase(userRepository)
 
     val getCurrentUserUseCase = GetCurrentUserUseCase(userRepository)
+    val syncCurrentUserProfileUseCase = SyncCurrentUserProfileUseCase(userRepository)
     val updateUserProfileUseCase = UpdateUserProfileUseCase(userRepository)
     val changePasswordUseCase = ChangePasswordUseCase(userRepository)
 
