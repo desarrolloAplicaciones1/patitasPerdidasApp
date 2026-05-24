@@ -68,6 +68,7 @@ fun AlertDetailScreen(
             AlertDetailContent(
                 alert = state.alert,
                 onBack = onBack,
+                onUpdate = viewModel::updateAlert,
                 onResolve = viewModel::resolveAlert,
                 onDelete = viewModel::deleteAlert
             )
@@ -80,6 +81,7 @@ fun AlertDetailScreen(
 private fun AlertDetailContent(
     alert: Alert,
     onBack: () -> Unit,
+    onUpdate: (String, String, String) -> Unit,
     onResolve: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -95,10 +97,10 @@ private fun AlertDetailContent(
         AlertDialog(
             onDismissRequest = { showResolveDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("¿Marcar como resuelto?", fontFamily = Urbanist,
+            title = { Text("Â¿Marcar como resuelto?", fontFamily = Urbanist,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground) },
-            text = { Text("El aviso dejará de aparecer en el feed.", fontFamily = Urbanist,
+            text = { Text("El aviso dejarÃ¡ de aparecer en el feed.", fontFamily = Urbanist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 TextButton(onClick = { showResolveDialog = false; onResolve() }) {
@@ -118,10 +120,10 @@ private fun AlertDetailContent(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("¿Eliminar aviso?", fontFamily = Urbanist,
+            title = { Text("Â¿Eliminar aviso?", fontFamily = Urbanist,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground) },
-            text = { Text("Esta acción no se puede deshacer.", fontFamily = Urbanist,
+            text = { Text("Esta acciÃ³n no se puede deshacer.", fontFamily = Urbanist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; onDelete() }) {
@@ -213,7 +215,7 @@ private fun AlertDetailContent(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Nombre + lápiz
+            // Nombre + lÃ¡piz
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -281,13 +283,13 @@ private fun AlertDetailContent(
                     append(when (alert.petType) {
                         PetType.DOG -> "Perro"; PetType.CAT -> "Gato"; else -> "Animal"
                     })
-                    if (!alert.breed.isNullOrBlank()) append(" · ${alert.breed}")
+                    if (!alert.breed.isNullOrBlank()) append(" Â· ${alert.breed}")
                 },
                 fontFamily = Urbanist, fontWeight = FontWeight.Normal,
                 fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Ubicación
+            // UbicaciÃ³n
             if (!alert.location.address.isNullOrBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, contentDescription = null,
@@ -295,14 +297,14 @@ private fun AlertDetailContent(
                         modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "${alert.location.address} · ${timeAgo(alert.createdAt)}",
+                        "${alert.location.address} Â· ${timeAgo(alert.createdAt)}",
                         fontFamily = Urbanist, fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Grid de datos — usa colores del tema
+            // Grid de datos â€” usa colores del tema
             val gridBg = if (MaterialTheme.colorScheme.background == Color(0xFF1C1C1C) ||
                 MaterialTheme.colorScheme.background.red < 0.2f)
                 Color(0xFF1A3333) else Color(0xFFE8F7F6)
@@ -327,13 +329,13 @@ private fun AlertDetailContent(
                                 )
                             } else {
                                 Text(
-                                    editColor.ifBlank { "—" }, fontFamily = Urbanist,
+                                    editColor.ifBlank { "â€”" }, fontFamily = Urbanist,
                                     fontSize = 15.sp,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                             }
                         }
-                        DetailCell("COLLAR", "—", modifier = Modifier.weight(1f))
+                        DetailCell("COLLAR", "â€”", modifier = Modifier.weight(1f))
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
@@ -355,10 +357,10 @@ private fun AlertDetailContent(
                 }
             }
 
-            // Descripción editable inline
+            // DescripciÃ³n editable inline
             Column {
                 Text(
-                    "DESCRIPCIÓN",
+                    "DESCRIPCIÃ“N",
                     fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.drawBehind {
@@ -399,10 +401,13 @@ private fun AlertDetailContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Botón guardar — solo en modo edición
+            // BotÃ³n guardar â€” solo en modo ediciÃ³n
             if (isEditing) {
                 Button(
-                    onClick = { isEditing = false },
+                    onClick = {
+                        onUpdate(editName, editDescription, editColor)
+                        isEditing = false
+                    },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(4.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
@@ -415,24 +420,25 @@ private fun AlertDetailContent(
                 }
             }
 
-            // Botones normales — ocultos en modo edición
+            // Botones normales â€” ocultos en modo ediciÃ³n
             if (!isEditing) {
                 // Contactar por WhatsApp
                 Button(
                     onClick = {
-                        val phone = alert.contactPhone?.replace(Regex("[^0-9]"), "") ?: ""
-                        val msg = "Hola! Vi tu aviso en Huellitas sobre ${alert.petName}. ¿Podés darme más info?"
+                        val phone = alert.contactPhone?.replace(Regex("[^0-9]"), "").orEmpty()
+                        val msg = "Hola! Vi tu aviso en Huellitas sobre ${alert.petName}. Quiero mas info."
                         val url = "https://wa.me/$phone?text=${URLEncoder.encode(msg, "UTF-8")}"
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
+                    enabled = !alert.contactPhone.isNullOrBlank(),
                     shape = RoundedCornerShape(4.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
                 ) {
                     Icon(Icons.Default.Phone, contentDescription = null,
                         modifier = Modifier.size(18.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Contactar por WhatsApp", fontFamily = Urbanist,
+                    Text(if (alert.contactPhone.isNullOrBlank()) "Sin telefono de contacto" else "Contactar por WhatsApp", fontFamily = Urbanist,
                         fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
                 }
 
@@ -444,7 +450,7 @@ private fun AlertDetailContent(
                         shape = RoundedCornerShape(4.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal)
                     ) {
-                        Text("Resuelto ✓", fontFamily = Urbanist,
+                        Text("Resuelto âœ“", fontFamily = Urbanist,
                             fontWeight = FontWeight.Normal, color = HuellitasTeal)
                     }
                     OutlinedButton(

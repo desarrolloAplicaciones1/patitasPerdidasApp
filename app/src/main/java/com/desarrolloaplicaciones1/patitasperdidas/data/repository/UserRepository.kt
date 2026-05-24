@@ -32,6 +32,9 @@ class UserRepository(
 
     override suspend fun updateUserProfile(user: User) = userDao.update(user.toEntity())
 
+    override suspend fun updatePassword(newPassword: String) =
+        authDataSource.updatePassword(newPassword)
+
     companion object {
         @Volatile private var INSTANCE: UserRepository? = null
 

@@ -20,5 +20,10 @@ class FirebaseAuthDataSource {
         return result.user?.uid ?: error("UID nulo tras login")
     }
 
+    suspend fun updatePassword(newPassword: String) {
+        val currentUser = auth.currentUser ?: error("No hay usuario autenticado")
+        currentUser.updatePassword(newPassword).await()
+    }
+
     fun logout() = auth.signOut()
 }

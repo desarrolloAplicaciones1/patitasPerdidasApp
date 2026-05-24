@@ -2,15 +2,39 @@ package com.desarrolloaplicaciones1.patitasperdidas.presentation.create
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,6 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.AlertType
 import com.desarrolloaplicaciones1.patitasperdidas.domain.model.PetType
 import com.desarrolloaplicaciones1.patitasperdidas.ui.theme.HuellitasTeal
@@ -28,15 +54,19 @@ import com.desarrolloaplicaciones1.patitasperdidas.ui.theme.Urbanist
 @Composable
 fun ExpressAlertScreen(
     onBack: () -> Unit,
-    onPublished: () -> Unit = {}
+    onPublished: () -> Unit = {},
+    viewModel: ExpressAlertViewModel = viewModel()
 ) {
-    var alertType   by remember { mutableStateOf(AlertType.LOST) }
-    var petName     by remember { mutableStateOf("") }
-    var petType     by remember { mutableStateOf(PetType.DOG) }
-    var size        by remember { mutableStateOf("Chico") }
-    var description by remember { mutableStateOf("") }
-    var barrio      by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
     var barrioError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(uiState) {
+        if (uiState is ExpressAlertUiState.Success) {
+            viewModel.resetState()
+            onPublished()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -55,16 +85,11 @@ fun ExpressAlertScreen(
                 fontFamily = Urbanist,
                 fontWeight = FontWeight.Normal,
                 fontSize = 20.sp,
-                color = Color(0xFF1C1C1C),
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.drawBehind {
                     val strokeWidth = 2.dp.toPx()
-                    val y = this.size.height
-                    drawLine(
-                        color = HuellitasTeal,
-                        start = Offset(0f, y),
-                        end = Offset(this.size.width, y),
-                        strokeWidth = strokeWidth
-                    )
+                    val y = size.height
+                    drawLine(HuellitasTeal, Offset(0f, y), Offset(size.width, y), strokeWidth)
                 }
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -76,8 +101,12 @@ fun ExpressAlertScreen(
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar",
-                    tint = HuellitasTeal, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Cerrar",
+                    tint = HuellitasTeal,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
 
@@ -88,7 +117,19 @@ fun ExpressAlertScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Banner info
+            if (uiState is ExpressAlertUiState.Error) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = (uiState as ExpressAlertUiState.Error).message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = Color(0xFFE8F7F6),
@@ -98,11 +139,15 @@ fun ExpressAlertScreen(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.FlashOn, contentDescription = null,
-                        tint = HuellitasTeal, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        Icons.Default.FlashOn,
+                        contentDescription = null,
+                        tint = HuellitasTeal,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        "Completá lo que puedas. Cada dato ayuda.",
+                        "Completa lo que puedas. Cada dato ayuda.",
                         fontFamily = Urbanist,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -111,18 +156,17 @@ fun ExpressAlertScreen(
                 }
             }
 
-            // ESTADO
             ExpressLabel("ESTADO")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AlertType.entries.forEach { type ->
-                    val isSelected = alertType == type
+                    val isSelected = formState.alertType == type
                     val bgColor = when {
-                        isSelected && type == AlertType.LOST  -> Color(0xFFF43F47)
+                        isSelected && type == AlertType.LOST -> Color(0xFFF43F47)
                         isSelected && type == AlertType.FOUND -> Color(0xFF43A047)
                         else -> Color(0xFFF5F5F5)
                     }
                     Button(
-                        onClick = { alertType = type },
+                        onClick = { viewModel.onAlertTypeChange(type) },
                         modifier = Modifier.weight(1f).height(42.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -140,11 +184,10 @@ fun ExpressAlertScreen(
                 }
             }
 
-            // NOMBRE DEL ANIMAL
             ExpressLabel("NOMBRE DEL ANIMAL")
             OutlinedTextField(
-                value = petName,
-                onValueChange = { petName = it },
+                value = formState.petName,
+                onValueChange = viewModel::onPetNameChange,
                 placeholder = { Text("Ej: Buddy, Luna...", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -155,27 +198,24 @@ fun ExpressAlertScreen(
                 )
             )
 
-            // ESPECIE
             ExpressLabel("ESPECIE")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExpressChip("Perro", petType == PetType.DOG) { petType = PetType.DOG }
-                ExpressChip("Gato",  petType == PetType.CAT) { petType = PetType.CAT }
+                ExpressChip("Perro", formState.petType == PetType.DOG) { viewModel.onPetTypeChange(PetType.DOG) }
+                ExpressChip("Gato", formState.petType == PetType.CAT) { viewModel.onPetTypeChange(PetType.CAT) }
             }
 
-            // TAMAÑO
-            ExpressLabel("TAMAÑO")
+            ExpressLabel("TAMANIO")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Chico", "Mediano", "Grande").forEach { s ->
-                    ExpressChip(s, size == s) { size = s }
+                listOf("Chico", "Mediano", "Grande").forEach { size ->
+                    ExpressChip(size, formState.size == size) { viewModel.onSizeChange(size) }
                 }
             }
 
-            // DESCRIPCIÓN
-            ExpressLabel("DESCRIPCIÓN")
+            ExpressLabel("DESCRIPCION")
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                placeholder = { Text("Cualquier detalle que ayude....", color = Color.Gray, fontFamily = Urbanist) },
+                value = formState.description,
+                onValueChange = viewModel::onDescriptionChange,
+                placeholder = { Text("Cualquier detalle que ayude...", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = false,
                 minLines = 4,
                 maxLines = 6,
@@ -187,11 +227,13 @@ fun ExpressAlertScreen(
                 )
             )
 
-            // BARRIO
             ExpressLabel("BARRIO")
             OutlinedTextField(
-                value = barrio,
-                onValueChange = { barrio = it; barrioError = null },
+                value = formState.address,
+                onValueChange = {
+                    viewModel.onAddressChange(it)
+                    barrioError = null
+                },
                 placeholder = { Text("Ej: Palermo, CABA", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
                 isError = barrioError != null,
@@ -212,19 +254,35 @@ fun ExpressAlertScreen(
         Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
             Button(
                 onClick = {
-                    barrioError = if (barrio.isBlank()) "El barrio es obligatorio" else null
-                    if (barrioError == null) onPublished()
+                    barrioError = if (formState.address.isBlank()) "El barrio es obligatorio" else null
+                    if (barrioError == null) {
+                        viewModel.publishAlert()
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .navigationBarsPadding()
                     .height(52.dp),
+                enabled = uiState !is ExpressAlertUiState.Loading,
                 shape = RoundedCornerShape(3.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
             ) {
-                Text("Publicar alerta", fontFamily = Urbanist,
-                    fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
+                if (uiState is ExpressAlertUiState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        "Publicar alerta",
+                        fontFamily = Urbanist,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
@@ -232,8 +290,13 @@ fun ExpressAlertScreen(
 
 @Composable
 private fun ExpressLabel(text: String) {
-    Text(text = text, fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-        fontSize = 14.sp, color = Color(0xFF1C1C1C))
+    Text(
+        text = text,
+        fontFamily = Urbanist,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onBackground
+    )
 }
 
 @Composable
@@ -245,8 +308,12 @@ private fun ExpressChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
-        Text(text = label, fontFamily = Urbanist,
+        Text(
+            text = label,
+            fontFamily = Urbanist,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 13.sp, color = if (selected) Color.White else Color(0xFF3D3D3D))
+            fontSize = 13.sp,
+            color = if (selected) Color.White else Color(0xFF3D3D3D)
+        )
     }
 }

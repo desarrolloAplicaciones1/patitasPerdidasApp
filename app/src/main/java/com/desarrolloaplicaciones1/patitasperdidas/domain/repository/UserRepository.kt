@@ -13,4 +13,5 @@ interface UserRepository {
     fun logout()
     suspend fun saveUserProfile(user: User)
     suspend fun updateUserProfile(user: User)
+    suspend fun updatePassword(newPassword: String)
 }

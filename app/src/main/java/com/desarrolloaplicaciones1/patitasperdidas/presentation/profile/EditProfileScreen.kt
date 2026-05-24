@@ -1,7 +1,19 @@
 package com.desarrolloaplicaciones1.patitasperdidas.presentation.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,8 +22,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,33 +57,25 @@ import com.desarrolloaplicaciones1.patitasperdidas.ui.theme.Urbanist
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: EditProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    val currentName = when (val s = uiState) {
-        is ProfileUiState.Success -> s.user.name
-        else -> "Valentin Arce"
-    }
-    val currentEmail = when (val s = uiState) {
-        is ProfileUiState.Success -> s.user.email
-        else -> "test@gmail.com"
-    }
-
-    var nombre      by remember(currentName) { mutableStateOf(currentName) }
-    var ubicacion   by remember { mutableStateOf("Palermo, CABA") }
-    var password    by remember { mutableStateOf("") }
-    var confirmPass by remember { mutableStateOf("") }
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
     var passVisible by remember { mutableStateOf(false) }
-    var showSuccess by remember { mutableStateOf(false) }
 
-    if (showSuccess) {
+    if (uiState is EditProfileUiState.Success) {
         AlertDialog(
-            onDismissRequest = { showSuccess = false; onBack() },
-            title = { Text("¡Perfil actualizado!", fontFamily = Urbanist, fontWeight = FontWeight.Bold) },
+            onDismissRequest = {
+                viewModel.consumeSuccess()
+                onBack()
+            },
+            title = { Text("Perfil actualizado", fontFamily = Urbanist, fontWeight = FontWeight.Bold) },
             text = { Text("Tus datos fueron guardados correctamente.", fontFamily = Urbanist) },
             confirmButton = {
-                TextButton(onClick = { showSuccess = false; onBack() }) {
+                TextButton(onClick = {
+                    viewModel.consumeSuccess()
+                    onBack()
+                }) {
                     Text("OK", color = HuellitasTeal, fontFamily = Urbanist)
                 }
             }
@@ -63,52 +83,67 @@ fun EditProfileScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Top bar con mismo estilo que Profile
         Row(
-            modifier = Modifier.fillMaxWidth().statusBarsPadding()
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape)
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
                     .background(Color(0xFFE8F7F6)),
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver",
-                        tint = HuellitasTeal, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = HuellitasTeal, modifier = Modifier.size(20.dp))
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Editar perfil", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
-                fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text("Editar perfil", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
         }
 
         Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Avatar con inicial del nombre real
             Box(
-                modifier = Modifier.size(80.dp).clip(CircleShape)
-                    .background(HuellitasTeal).align(Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(HuellitasTeal)
+                    .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = currentName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                    fontFamily = Urbanist, fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp, color = Color.White
+                    text = formState.name.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                    fontFamily = Urbanist,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 32.sp,
+                    color = Color.White
                 )
             }
 
-            // Email (solo lectura)
-            Text("Email", fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-                fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            if (uiState is EditProfileUiState.Error) {
+                Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        text = (uiState as EditProfileUiState.Error).message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            Text("Email", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             OutlinedTextField(
-                value = currentEmail,
+                value = formState.email,
                 onValueChange = {},
                 enabled = false,
                 singleLine = true,
@@ -120,15 +155,12 @@ fun EditProfileScreen(
                     disabledContainerColor = Color(0xFFF5F5F5)
                 )
             )
-            Text("El email no se puede modificar", fontFamily = Urbanist,
-                fontSize = 11.sp, color = Color(0xFF888888))
+            Text("El email no se puede modificar", fontFamily = Urbanist, fontSize = 11.sp, color = Color(0xFF888888))
 
-            // Nombre
-            Text("Nombre", fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-                fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text("Nombre", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it },
+                value = formState.name,
+                onValueChange = viewModel::onNameChange,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(3.dp),
@@ -138,12 +170,10 @@ fun EditProfileScreen(
                 )
             )
 
-            // Ubicación
-            Text("Ubicación", fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-                fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text("Ubicacion", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             OutlinedTextField(
-                value = ubicacion,
-                onValueChange = { ubicacion = it },
+                value = formState.location,
+                onValueChange = viewModel::onLocationChange,
                 placeholder = { Text("Ej. Palermo, CABA", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -156,18 +186,15 @@ fun EditProfileScreen(
 
             HorizontalDivider(color = Color(0xFFEEEEEE))
 
-            // Nueva contraseña
-            Text("Nueva contraseña", fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-                fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text("Nueva contrasena", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                placeholder = { Text("Mínimo 6 caracteres", color = Color.Gray, fontFamily = Urbanist) },
+                value = formState.password,
+                onValueChange = viewModel::onPasswordChange,
+                placeholder = { Text("Minimo 6 caracteres", color = Color.Gray, fontFamily = Urbanist) },
                 visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passVisible = !passVisible }) {
-                        Icon(if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = null, tint = Color.Gray)
+                        Icon(if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = Color.Gray)
                     }
                 },
                 singleLine = true,
@@ -179,13 +206,11 @@ fun EditProfileScreen(
                 )
             )
 
-            // Confirmar contraseña
-            Text("Confirmar contraseña", fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-                fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text("Confirmar contrasena", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             OutlinedTextField(
-                value = confirmPass,
-                onValueChange = { confirmPass = it },
-                placeholder = { Text("Repetí la contraseña", color = Color.Gray, fontFamily = Urbanist) },
+                value = formState.confirmPassword,
+                onValueChange = viewModel::onConfirmPasswordChange,
+                placeholder = { Text("Repeti la contrasena", color = Color.Gray, fontFamily = Urbanist) },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -200,15 +225,21 @@ fun EditProfileScreen(
 
         Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
             Button(
-                onClick = { showSuccess = true },
-                modifier = Modifier.fillMaxWidth()
+                onClick = viewModel::saveProfile,
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 12.dp)
-                    .navigationBarsPadding().height(52.dp),
+                    .navigationBarsPadding()
+                    .height(52.dp),
+                enabled = uiState !is EditProfileUiState.Loading,
                 shape = RoundedCornerShape(3.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
             ) {
-                Text("Guardar cambios", fontFamily = Urbanist,
-                    fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
+                if (uiState is EditProfileUiState.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text("Guardar cambios", fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
+                }
             }
         }
     }

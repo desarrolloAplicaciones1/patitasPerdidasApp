@@ -20,6 +20,8 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
     private val appContainer = (application as PatitasPerdidasApplication).appContainer
     private val createAlertUseCase = appContainer.createAlertUseCase
     private val getCurrentUserIdUseCase = appContainer.getCurrentUserIdUseCase
+    private val geocodeAddressUseCase = appContainer.geocodeAddressUseCase
+    private val uploadAlertPhotoUseCase = appContainer.uploadAlertPhotoUseCase
 
     private val _uiState = MutableStateFlow<CreateAlertUiState>(CreateAlertUiState.Idle)
     val uiState: StateFlow<CreateAlertUiState> = _uiState.asStateFlow()
@@ -32,13 +34,16 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
     fun onPetTypeChange(type: PetType) { _formState.value = _formState.value.copy(petType = type) }
     fun onBreedChange(value: String) { _formState.value = _formState.value.copy(breed = value) }
     fun onColorChange(value: String) { _formState.value = _formState.value.copy(color = value) }
+    fun onSizeChange(value: String) { _formState.value = _formState.value.copy(size = value) }
+    fun onHasCollarChange(value: Boolean) { _formState.value = _formState.value.copy(hasCollar = value) }
+    fun onIsCastratedChange(value: Boolean) { _formState.value = _formState.value.copy(isCastrated = value) }
     fun onDescriptionChange(value: String) { _formState.value = _formState.value.copy(description = value) }
     fun onContactPhoneChange(value: String) { _formState.value = _formState.value.copy(contactPhone = value) }
     fun onLocationChange(lat: Double, lng: Double, address: String) {
         _formState.value = _formState.value.copy(latitude = lat, longitude = lng, address = address)
     }
 
-    fun submitAlert() {
+    fun submitAlert(photoUri: String? = null) {
         val form = _formState.value
         val ownerId = getCurrentUserIdUseCase() ?: run {
             _uiState.value = CreateAlertUiState.Error("No hay sesion activa")
@@ -49,6 +54,17 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.value = CreateAlertUiState.Loading
             try {
                 val now = System.currentTimeMillis()
+                val resolvedLocation = geocodeAddressUseCase(form.address)
+                    ?: Location(
+                        latitude = form.latitude ?: 0.0,
+                        longitude = form.longitude ?: 0.0,
+                        address = form.address.ifBlank { null }
+                    )
+                val uploadedPhotoUrl = if (!photoUri.isNullOrBlank()) {
+                    uploadAlertPhotoUseCase(photoUri)
+                } else {
+                    null
+                }
                 val alert = Alert(
                     id = UUID.randomUUID().toString(),
                     ownerId = ownerId,
@@ -58,12 +74,12 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
                     petType = form.petType,
                     breed = form.breed.ifBlank { null },
                     color = form.color.ifBlank { null },
+                    size = form.size,
+                    hasCollar = form.hasCollar,
+                    isCastrated = form.isCastrated,
                     description = form.description,
-                    location = Location(
-                        latitude = form.latitude ?: 0.0,
-                        longitude = form.longitude ?: 0.0,
-                        address = form.address.ifBlank { null }
-                    ),
+                    photoUrls = if (uploadedPhotoUrl != null) listOf(uploadedPhotoUrl) else emptyList(),
+                    location = resolvedLocation,
                     contactPhone = form.contactPhone.ifBlank { null },
                     createdAt = now,
                     updatedAt = now

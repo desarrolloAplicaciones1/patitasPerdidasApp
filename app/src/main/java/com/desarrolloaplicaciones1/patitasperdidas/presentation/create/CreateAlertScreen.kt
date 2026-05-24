@@ -6,7 +6,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,8 +25,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,16 +66,13 @@ fun CreateAlertScreen(
     onAlertCreated: () -> Unit,
     viewModel: CreateAlertViewModel = viewModel()
 ) {
-    var hasCollar        by remember { mutableStateOf(false) }
-    val uiState          by viewModel.uiState.collectAsStateWithLifecycle()
-    val formState        by viewModel.formState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var isCastrated      by remember { mutableStateOf(false) }
-    var size             by remember { mutableStateOf("Chico") }
-    var nameError        by remember { mutableStateOf<String?>(null) }
+    var nameError by remember { mutableStateOf<String?>(null) }
     var descriptionError by remember { mutableStateOf<String?>(null) }
-    var barrioError      by remember { mutableStateOf<String?>(null) }
-    var phoneError       by remember { mutableStateOf<String?>(null) }
+    var barrioError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -69,7 +90,6 @@ fun CreateAlertScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -87,9 +107,8 @@ fun CreateAlertScreen(
                     .padding(bottom = 4.dp)
                     .drawBehind {
                         val strokeWidth = 2.dp.toPx()
-                        val y = this.size.height
-                        drawLine(HuellitasTeal, Offset(0f, y),
-                            Offset(this.size.width, y), strokeWidth)
+                        val y = size.height
+                        drawLine(HuellitasTeal, Offset(0f, y), Offset(size.width, y), strokeWidth)
                     }
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -101,12 +120,15 @@ fun CreateAlertScreen(
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar",
-                    tint = HuellitasTeal, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Cerrar",
+                    tint = HuellitasTeal,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
 
-        // Contenido scrolleable
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -115,26 +137,30 @@ fun CreateAlertScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (uiState is CreateAlertUiState.Error) {
-                Surface(color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(8.dp)) {
-                    Text(text = (uiState as CreateAlertUiState.Error).message,
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = (uiState as CreateAlertUiState.Error).message,
                         color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(12.dp))
+                        modifier = Modifier.padding(12.dp)
+                    )
                 }
             }
 
-            // FOTO
             SectionLabel("FOTO")
-            PhotoPickerBox(imageUri = selectedImageUri,
-                onClick = { imagePickerLauncher.launch("image/*") })
+            PhotoPickerBox(
+                imageUri = selectedImageUri,
+                onClick = { imagePickerLauncher.launch("image/*") }
+            )
 
-            // ESTADO
             SectionLabel("ESTADO")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AlertType.entries.forEach { type ->
                     val isSelected = formState.alertType == type
                     val bgColor = when {
-                        isSelected && type == AlertType.LOST  -> Color(0xFFF43F47)
+                        isSelected && type == AlertType.LOST -> Color(0xFFF43F47)
                         isSelected && type == AlertType.FOUND -> StatusFound
                         else -> Color(0xFFF5F5F5)
                     }
@@ -149,13 +175,14 @@ fun CreateAlertScreen(
                     ) {
                         Text(
                             text = if (type == AlertType.LOST) "Perdido" else "Encontrado",
-                            fontFamily = Urbanist, fontWeight = FontWeight.Normal, fontSize = 14.sp
+                            fontFamily = Urbanist,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 14.sp
                         )
                     }
                 }
             }
 
-            // NOMBRE *
             SectionLabel("NOMBRE DEL ANIMAL *")
             OutlinedTextField(
                 value = formState.petName,
@@ -174,9 +201,10 @@ fun CreateAlertScreen(
                 Text(nameError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
             }
 
-            // ESPECIE y CASTRADO
-            Row(modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     SectionLabel("ESPECIE")
                     Spacer(modifier = Modifier.height(6.dp))
@@ -193,29 +221,26 @@ fun CreateAlertScreen(
                     SectionLabel("CASTRADO")
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SmallChip("No", !isCastrated) { isCastrated = false }
-                        SmallChip("Sí", isCastrated)  { isCastrated = true }
+                        SmallChip("No", !formState.isCastrated) { viewModel.onIsCastratedChange(false) }
+                        SmallChip("Si", formState.isCastrated) { viewModel.onIsCastratedChange(true) }
                     }
                 }
             }
 
-            // TAMAÑO
-            SectionLabel("TAMAÑO")
+            SectionLabel("TAMANIO")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Chico", "Mediano", "Grande").forEach { s ->
-                    SmallChip(s, size == s) { size = s }
+                listOf("Chico", "Mediano", "Grande").forEach { size ->
+                    SmallChip(size, formState.size == size) { viewModel.onSizeChange(size) }
                 }
             }
 
-            // COLLAR
             SectionLabel("COLLAR")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallChip("No", !hasCollar) { hasCollar = false }
-                SmallChip("Sí", hasCollar)  { hasCollar = true }
+                SmallChip("No", !formState.hasCollar) { viewModel.onHasCollarChange(false) }
+                SmallChip("Si", formState.hasCollar) { viewModel.onHasCollarChange(true) }
             }
 
-            // DESCRIPCIÓN *
-            SectionLabel("DESCRIPCIÓN *")
+            SectionLabel("DESCRIPCION *")
             OutlinedTextField(
                 value = formState.description,
                 onValueChange = { viewModel.onDescriptionChange(it); descriptionError = null },
@@ -235,7 +260,6 @@ fun CreateAlertScreen(
                 Text(descriptionError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
             }
 
-            // BARRIO *
             SectionLabel("BARRIO *")
             OutlinedTextField(
                 value = formState.address,
@@ -254,10 +278,9 @@ fun CreateAlertScreen(
                 Text(barrioError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
             }
 
-            // COLOR
             SectionLabel("COLOR")
             OutlinedTextField(
-                value = formState.color ?: "",
+                value = formState.color,
                 onValueChange = viewModel::onColorChange,
                 placeholder = { Text("Ej. Tricolor", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
@@ -269,10 +292,9 @@ fun CreateAlertScreen(
                 )
             )
 
-            // TELÉFONO DE CONTACTO *
-            SectionLabel("TELÉFONO DE CONTACTO *")
+            SectionLabel("TELEFONO DE CONTACTO *")
             OutlinedTextField(
-                value = formState.contactPhone ?: "",
+                value = formState.contactPhone,
                 onValueChange = { viewModel.onContactPhoneChange(it); phoneError = null },
                 placeholder = { Text("Ej. +54 11 1234-5678", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
@@ -292,16 +314,15 @@ fun CreateAlertScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // Botón publicar fijo abajo
         Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
             Button(
                 onClick = {
-                    nameError        = if (formState.petName.isBlank()) "El nombre es obligatorio" else null
-                    descriptionError = if (formState.description.isBlank()) "La descripción es obligatoria" else null
-                    barrioError      = if (formState.address.isBlank()) "El barrio es obligatorio" else null
-                    phoneError       = if ((formState.contactPhone ?: "").isBlank()) "El teléfono es obligatorio" else null
+                    nameError = if (formState.petName.isBlank()) "El nombre es obligatorio" else null
+                    descriptionError = if (formState.description.isBlank()) "La descripcion es obligatoria" else null
+                    barrioError = if (formState.address.isBlank()) "El barrio es obligatorio" else null
+                    phoneError = if (formState.contactPhone.isBlank()) "El telefono es obligatorio" else null
                     if (nameError == null && descriptionError == null && barrioError == null && phoneError == null) {
-                        viewModel.submitAlert()
+                        viewModel.submitAlert(selectedImageUri?.toString())
                     }
                 },
                 modifier = Modifier
@@ -314,11 +335,19 @@ fun CreateAlertScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
             ) {
                 if (uiState is CreateAlertUiState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp),
-                        color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
                 } else {
-                    Text("Publicar", fontFamily = Urbanist,
-                        fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
+                    Text(
+                        "Publicar",
+                        fontFamily = Urbanist,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -327,8 +356,13 @@ fun CreateAlertScreen(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text = text, fontFamily = Urbanist, fontWeight = FontWeight.Medium,
-        fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+    Text(
+        text = text,
+        fontFamily = Urbanist,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onBackground
+    )
 }
 
 @Composable
@@ -340,9 +374,13 @@ private fun SmallChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
-        Text(text = label, fontFamily = Urbanist,
+        Text(
+            text = label,
+            fontFamily = Urbanist,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 13.sp, color = if (selected) Color.White else Color(0xFF3D3D3D))
+            fontSize = 13.sp,
+            color = if (selected) Color.White else Color(0xFF3D3D3D)
+        )
     }
 }
 
@@ -359,17 +397,23 @@ private fun PhotoPickerBox(imageUri: Uri?, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         if (imageUri != null) {
-            AsyncImage(model = imageUri, contentDescription = "Foto seleccionada",
-                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Foto seleccionada",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.CameraAlt, contentDescription = null,
-                    tint = HuellitasTeal, modifier = Modifier.size(32.dp))
+                Icon(
+                    Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    tint = HuellitasTeal,
+                    modifier = Modifier.size(32.dp)
+                )
                 Spacer(modifier = Modifier.height(6.dp))
-                Text("Tocá para sacar una foto", fontFamily = Urbanist,
-                    fontSize = 14.sp, color = Color(0xFF3D3D3D))
-                Text("o elegir desde galería", fontFamily = Urbanist,
-                    fontSize = 12.sp, color = Color(0xFF888888))
+                Text("Toca para sacar una foto", fontFamily = Urbanist, fontSize = 14.sp, color = Color(0xFF3D3D3D))
+                Text("o elegir desde galeria", fontFamily = Urbanist, fontSize = 12.sp, color = Color(0xFF888888))
             }
         }
     }
