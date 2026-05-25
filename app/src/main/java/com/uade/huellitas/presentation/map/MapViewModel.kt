@@ -53,7 +53,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             MapUiState.Success(
                 alerts = mapAlerts,
                 selectedRadiusKm = settings.alertRadiusKm,
-                centerLabel = referenceLocation.label
+                centerLabel = referenceLocation.label,
+                center = referenceLocation.location
             ) as MapUiState
         }
         .catch { e -> emit(MapUiState.Error(e.message ?: "Error al cargar el mapa")) }
