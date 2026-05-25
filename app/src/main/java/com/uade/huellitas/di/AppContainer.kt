@@ -55,6 +55,7 @@ import com.uade.huellitas.domain.usecase.user.GetCurrentUserUseCase
 import com.uade.huellitas.domain.usecase.user.SyncCurrentUserProfileUseCase
 import com.uade.huellitas.domain.usecase.user.UpdateUserProfileUseCase
 import com.uade.huellitas.presentation.onboarding.OnboardingViewModel
+import com.uade.huellitas.presentation.profile.alerts.MyAlertsViewModel
 
 class AppContainer(context: Context) {
     private val database = AppDatabase.getInstance(context)
@@ -130,4 +131,6 @@ class AppContainer(context: Context) {
 
     val completeOnboardingUseCase = CompleteOnboardingUseCase(onboardingPreferences)
     val onboardingViewModel = OnboardingViewModel(completeOnboardingUseCase)
+
+    val myAlertsViewModel = MyAlertsViewModel(getMyAlertsUseCase, getCurrentUserIdUseCase)
 }
