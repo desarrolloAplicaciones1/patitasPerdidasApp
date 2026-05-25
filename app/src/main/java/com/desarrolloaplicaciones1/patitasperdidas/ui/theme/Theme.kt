@@ -9,35 +9,53 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary            = HuellitasTeal,
+    onPrimary          = Color.White,
+    primaryContainer   = HuellitasTealLight,
+    onPrimaryContainer = HuellitasTealDark,
+    secondary          = HuellitasTealDark,
+    onSecondary        = Color.White,
+    background         = SurfaceLight,
+    onBackground       = NeutralDark,
+    surface            = SurfaceWhite,
+    onSurface          = NeutralDark,
+    surfaceVariant     = HuellitasTealSurface,
+    onSurfaceVariant   = NeutralMedium,
+    outline            = NeutralBorder,
+    error              = StatusLost,
+    onError            = Color.White,
+)
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColorScheme = darkColorScheme(
+    primary            = HuellitasTeal,
+    onPrimary          = Color.Black,
+    primaryContainer   = HuellitasTealDark,
+    onPrimaryContainer = HuellitasTealLight,
+    secondary          = HuellitasTealLight,
+    onSecondary        = Color.Black,
+    background         = DarkBackground,
+    onBackground       = OnDarkPrimary,
+    surface            = DarkSurface,
+    onSurface          = OnDarkPrimary,
+    surfaceVariant     = DarkSurfaceVariant,
+    onSurfaceVariant   = OnDarkSecondary,
+    outline            = DarkBorder,
+    error              = StatusLost,
+    onError            = Color.White,
 )
 
 @Composable
-fun PatitasPerdidasTheme(
+fun HuellitasTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // disabled to keep brand colors consistent
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,14 +63,22 @@ fun PatitasPerdidasTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
 
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = HuellitasTypography,
         content = content
     )
 }

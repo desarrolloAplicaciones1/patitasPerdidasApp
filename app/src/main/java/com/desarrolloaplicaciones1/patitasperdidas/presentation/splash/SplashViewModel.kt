@@ -2,10 +2,12 @@
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.desarrolloaplicaciones1.patitasperdidas.PatitasPerdidasApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 sealed class SplashUiState {
     object Loading : SplashUiState()
@@ -15,17 +17,21 @@ sealed class SplashUiState {
 
 class SplashViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val isLoggedInUseCase =
-        (application as PatitasPerdidasApplication).appContainer.isLoggedInUseCase
+    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val isLoggedInUseCase = appContainer.isLoggedInUseCase
+    private val syncCurrentUserProfileUseCase = appContainer.syncCurrentUserProfileUseCase
 
     private val _uiState = MutableStateFlow<SplashUiState>(SplashUiState.Loading)
     val uiState: StateFlow<SplashUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.value = if (isLoggedInUseCase()) {
-            SplashUiState.NavigateToHome
-        } else {
-            SplashUiState.NavigateToOnboarding
+        viewModelScope.launch {
+            _uiState.value = if (isLoggedInUseCase()) {
+                runCatching { syncCurrentUserProfileUseCase() }
+                SplashUiState.NavigateToHome
+            } else {
+                SplashUiState.NavigateToOnboarding
+            }
         }
     }
 }
