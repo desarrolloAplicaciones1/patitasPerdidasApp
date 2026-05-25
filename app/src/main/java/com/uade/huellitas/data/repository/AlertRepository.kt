@@ -35,10 +35,8 @@ class AlertRepository(
 
     override suspend fun updateAlert(alert: Alert) {
         alertDao.update(alert.toEntity(pendingSync = true))
-        try {
-            remoteDataSource.updateAlert(alert)
-            alertDao.update(alert.toEntity(pendingSync = false))
-        } catch (e: Exception) { }
+        remoteDataSource.updateAlert(alert)
+        alertDao.update(alert.toEntity(pendingSync = false))
     }
 
     override suspend fun resolveAlert(alert: Alert) {
@@ -50,10 +48,8 @@ class AlertRepository(
     }
 
     override suspend fun deleteAlert(alert: Alert) {
+        remoteDataSource.deleteAlert(alert.id)
         alertDao.delete(alert.toEntity())
-        try {
-            remoteDataSource.deleteAlert(alert.id)
-        } catch (e: Exception) { }
     }
 
     override suspend fun syncFromFirestore() {
