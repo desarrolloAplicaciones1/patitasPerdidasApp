@@ -67,6 +67,7 @@ fun AlertDetailScreen(
         is AlertDetailUiState.Success -> {
             AlertDetailContent(
                 alert = state.alert,
+                isOwner = state.isOwner,
                 onBack = onBack,
                 onUpdate = viewModel::updateAlert,
                 onResolve = viewModel::resolveAlert,
@@ -80,6 +81,7 @@ fun AlertDetailScreen(
 @Composable
 private fun AlertDetailContent(
     alert: Alert,
+    isOwner: Boolean,
     onBack: () -> Unit,
     onUpdate: (String, String, String) -> Unit,
     onResolve: () -> Unit,
@@ -248,31 +250,33 @@ private fun AlertDetailContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(36.dp).clip(CircleShape)
-                        .background(
-                            if (isEditing) Color(0xFFFFEEEE) else Color(0xFFE8F7F6)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    IconButton(onClick = {
-                        if (isEditing) {
-                            editName = alert.petName
-                            editDescription = alert.description
-                            editColor = alert.color ?: ""
-                            isEditing = false
-                        } else {
-                            isEditing = true
+                if (isOwner) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp).clip(CircleShape)
+                            .background(
+                                if (isEditing) Color(0xFFFFEEEE) else Color(0xFFE8F7F6)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(onClick = {
+                            if (isEditing) {
+                                editName = alert.petName
+                                editDescription = alert.description
+                                editColor = alert.color ?: ""
+                                isEditing = false
+                            } else {
+                                isEditing = true
+                            }
+                        }) {
+                            Icon(
+                                if (isEditing) Icons.Default.Close else Icons.Default.Edit,
+                                contentDescription = if (isEditing) "Cancelar" else "Editar",
+                                tint = if (isEditing) Color.Red else HuellitasTeal,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
-                    }) {
-                        Icon(
-                            if (isEditing) Icons.Default.Close else Icons.Default.Edit,
-                            contentDescription = if (isEditing) "Cancelar" else "Editar",
-                            tint = if (isEditing) Color.Red else HuellitasTeal,
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
                 }
             }
@@ -442,8 +446,8 @@ private fun AlertDetailContent(
                         fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
                 }
 
-                // Resuelto / Eliminar
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Resuelto / Eliminar — solo para el dueño del aviso
+                if (isOwner) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = { showResolveDialog = true },
                         modifier = Modifier.weight(1f),
