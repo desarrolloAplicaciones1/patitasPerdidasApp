@@ -21,16 +21,16 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CameraAlt
-import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -39,8 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.HuellitasTealLight
 import com.uade.huellitas.ui.theme.HuellitasTealSurface
@@ -54,33 +52,27 @@ private data class OnboardingPage(
 
 private val PAGES = listOf(
     OnboardingPage(
+        icon = Icons.Rounded.Pets,
+        title = "Bienvenido a Huellitas",
+        subtitle = "La comunidad que ayuda a reunir mascotas perdidas con sus familias."
+    ),
+    OnboardingPage(
         icon = Icons.Rounded.Search,
-        title = "Encontrá mascotas cerca",
-        subtitle = "Buscá avisos de mascotas perdidas en tu zona"
+        title = "Reportá o encontrá mascotas",
+        subtitle = "Publicá un aviso de mascota perdida o encontrada en segundos."
     ),
     OnboardingPage(
-        icon = Icons.Rounded.CameraAlt,
-        title = "Publicá un aviso",
-        subtitle = "Reportá una mascota perdida o encontrada en segundos"
-    ),
-    OnboardingPage(
-        icon = Icons.Rounded.Favorite,
-        title = "Ayudá a tu comunidad",
-        subtitle = "Juntos podemos reunir más familias"
+        icon = Icons.Rounded.LocationOn,
+        title = "Conectate con tu barrio",
+        subtitle = "Explorá el mapa y filtrá avisos cercanos a vos."
     )
 )
 
 @Composable
 fun OnboardingScreen(
-    onNavigateToLogin: () -> Unit,
-    viewModel: OnboardingViewModel = viewModel()
+    viewModel: OnboardingViewModel,
+    onNavigateToLogin: () -> Unit
 ) {
-    val navigateToLogin by viewModel.navigateToLogin.collectAsStateWithLifecycle()
-
-    LaunchedEffect(navigateToLogin) {
-        if (navigateToLogin) onNavigateToLogin()
-    }
-
     val pagerState = rememberPagerState(pageCount = { PAGES.size })
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == PAGES.lastIndex
@@ -91,6 +83,24 @@ fun OnboardingScreen(
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .padding(end = 8.dp),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            if (!isLastPage) {
+                TextButton(onClick = { viewModel.onFinishOnboarding(onNavigateToLogin) }) {
+                    Text(
+                        text = "Saltar",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -116,7 +126,7 @@ fun OnboardingScreen(
             Button(
                 onClick = {
                     if (isLastPage) {
-                        viewModel.completeOnboarding()
+                        viewModel.onFinishOnboarding(onNavigateToLogin)
                     } else {
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -132,7 +142,7 @@ fun OnboardingScreen(
                 )
             ) {
                 Text(
-                    text = if (isLastPage) "Empezar" else "Siguiente",
+                    text = if (isLastPage) "¡Empezar!" else "Siguiente",
                     style = MaterialTheme.typography.labelLarge
                 )
             }

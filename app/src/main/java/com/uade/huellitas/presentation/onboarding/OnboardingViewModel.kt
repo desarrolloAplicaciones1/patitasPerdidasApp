@@ -1,26 +1,18 @@
 package com.uade.huellitas.presentation.onboarding
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.HuellitasApplication
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.uade.huellitas.domain.usecase.onboarding.CompleteOnboardingUseCase
 import kotlinx.coroutines.launch
 
-class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
+class OnboardingViewModel(
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase
+) : ViewModel() {
 
-    private val onboardingPreferences =
-        (application as HuellitasApplication).appContainer.onboardingPreferences
-
-    private val _navigateToLogin = MutableStateFlow(false)
-    val navigateToLogin: StateFlow<Boolean> = _navigateToLogin.asStateFlow()
-
-    fun completeOnboarding() {
+    fun onFinishOnboarding(onNavigate: () -> Unit) {
         viewModelScope.launch {
-            onboardingPreferences.setOnboardingCompleted()
-            _navigateToLogin.value = true
+            completeOnboardingUseCase()
+            onNavigate()
         }
     }
 }
