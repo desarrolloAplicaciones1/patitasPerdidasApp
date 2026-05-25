@@ -39,6 +39,7 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
@@ -137,8 +138,16 @@ fun RegisterScreen(
         OutlinedTextField(
             value = confirmPassword, onValueChange = { confirmPassword = it; confirmError = null },
             placeholder = { Text("Mínimo 6 caracteres", color = Color.Gray, fontFamily = Urbanist) },
-            visualTransformation = PasswordVisualTransformation(),
-            trailingIcon = { Icon(Icons.Default.Visibility, contentDescription = null, tint = Color.Gray) },
+            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    Icon(
+                        imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (confirmPasswordVisible) "Ocultar contraseña" else "Ver contraseña",
+                        tint = Color.Gray
+                    )
+                }
+            },
             isError = confirmError != null, singleLine = true, modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(3.dp),
             colors = OutlinedTextFieldDefaults.colors(
