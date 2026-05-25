@@ -6,6 +6,7 @@ import com.uade.huellitas.data.local.OnboardingPreferences
 import com.uade.huellitas.data.remote.FirebaseAuthDataSource
 import com.uade.huellitas.data.remote.FirestoreAlertDataSource
 import com.uade.huellitas.data.remote.FirestoreUserDataSource
+import com.uade.huellitas.data.repository.AndroidDeviceLocationRepository
 import com.uade.huellitas.data.repository.AndroidGeocodingRepository
 import com.uade.huellitas.data.repository.AlertRepository as AlertRepositoryImpl
 import com.uade.huellitas.data.repository.FirebasePhotoStorageRepository
@@ -14,12 +15,14 @@ import com.uade.huellitas.data.repository.PreferencesSettingsRepository
 import com.uade.huellitas.data.repository.UserRepository as UserRepositoryImpl
 import com.uade.huellitas.domain.repository.GeocodingRepository as GeocodingRepositoryContract
 import com.uade.huellitas.domain.repository.AlertRepository as AlertRepositoryContract
+import com.uade.huellitas.domain.repository.DeviceLocationRepository as DeviceLocationRepositoryContract
 import com.uade.huellitas.domain.repository.PetRepository as PetRepositoryContract
 import com.uade.huellitas.domain.repository.PhotoStorageRepository as PhotoStorageRepositoryContract
 import com.uade.huellitas.domain.repository.SettingsRepository as SettingsRepositoryContract
 import com.uade.huellitas.domain.repository.UserRepository as UserRepositoryContract
 import com.uade.huellitas.domain.usecase.alert.CreateAlertUseCase
 import com.uade.huellitas.domain.usecase.alert.DeleteAlertUseCase
+import com.uade.huellitas.domain.usecase.alert.FilterAlertsByRadiusUseCase
 import com.uade.huellitas.domain.usecase.alert.GetActiveAlertsUseCase
 import com.uade.huellitas.domain.usecase.alert.GetAlertByIdUseCase
 import com.uade.huellitas.domain.usecase.alert.GetMyAlertsUseCase
@@ -32,7 +35,10 @@ import com.uade.huellitas.domain.usecase.auth.LoginUseCase
 import com.uade.huellitas.domain.usecase.auth.LogoutUseCase
 import com.uade.huellitas.domain.usecase.auth.RegisterUserUseCase
 import com.uade.huellitas.domain.usecase.auth.SendPasswordResetEmailUseCase
+import com.uade.huellitas.domain.usecase.location.CalculateDistanceMetersUseCase
 import com.uade.huellitas.domain.usecase.location.GeocodeAddressUseCase
+import com.uade.huellitas.domain.usecase.location.GetCurrentDeviceLocationUseCase
+import com.uade.huellitas.domain.usecase.location.ResolveReferenceLocationUseCase
 import com.uade.huellitas.domain.usecase.media.UploadAlertPhotoUseCase
 import com.uade.huellitas.domain.usecase.pet.DeletePetUseCase
 import com.uade.huellitas.domain.usecase.pet.GetMyPetsUseCase
@@ -74,6 +80,9 @@ class AppContainer(context: Context) {
     private val geocodingRepository: GeocodingRepositoryContract =
         AndroidGeocodingRepository(context)
 
+    private val deviceLocationRepository: DeviceLocationRepositoryContract =
+        AndroidDeviceLocationRepository(context)
+
     private val photoStorageRepository: PhotoStorageRepositoryContract =
         FirebasePhotoStorageRepository()
 
@@ -110,6 +119,13 @@ class AppContainer(context: Context) {
     val setOfflineModeUseCase = SetOfflineModeUseCase(settingsRepository)
 
     val geocodeAddressUseCase = GeocodeAddressUseCase(geocodingRepository)
+    val getCurrentDeviceLocationUseCase = GetCurrentDeviceLocationUseCase(deviceLocationRepository)
+    val calculateDistanceMetersUseCase = CalculateDistanceMetersUseCase()
+    val resolveReferenceLocationUseCase = ResolveReferenceLocationUseCase(
+        getCurrentDeviceLocationUseCase,
+        geocodeAddressUseCase
+    )
+    val filterAlertsByRadiusUseCase = FilterAlertsByRadiusUseCase(calculateDistanceMetersUseCase)
     val uploadAlertPhotoUseCase = UploadAlertPhotoUseCase(photoStorageRepository)
 
     val completeOnboardingUseCase = CompleteOnboardingUseCase(onboardingPreferences)

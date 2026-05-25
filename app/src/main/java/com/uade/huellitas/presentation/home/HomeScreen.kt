@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import com.uade.huellitas.domain.model.Alert
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.PetType
+import com.uade.huellitas.presentation.location.RequestLocationPermissionEffect
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.HuellitasTealSurface
 import com.uade.huellitas.ui.theme.StatusFound
@@ -56,6 +57,10 @@ fun HomeScreen(
     var showFilterDialog by remember { mutableStateOf(false) }
     var showReportSheet  by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    RequestLocationPermissionEffect(
+        onPermissionGranted = viewModel::refreshReferenceLocation
+    )
 
     if (showFilterDialog) {
         FilterDialog(
