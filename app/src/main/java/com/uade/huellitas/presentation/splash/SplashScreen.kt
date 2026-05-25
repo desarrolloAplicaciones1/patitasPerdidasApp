@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 fun SplashScreen(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -29,8 +30,9 @@ fun SplashScreen(
         alpha.animateTo(1f, animationSpec = tween(800))
         delay(2500)
         when (uiState) {
-            is SplashUiState.NavigateToHome -> onNavigateToHome()
-            else                            -> onNavigateToOnboarding()
+            is SplashUiState.NavigateToHome     -> onNavigateToHome()
+            is SplashUiState.NavigateToLogin    -> onNavigateToLogin()
+            else                                -> onNavigateToOnboarding()
         }
     }
 
@@ -42,8 +44,8 @@ fun SplashScreen(
     ) {
         Image(
             painter = painterResource(
-                id = if (ThemeState.isDarkMode) R.drawable.logo_white
-                     else R.drawable.logo_splash
+                id = if (ThemeState.isDarkMode) com.uade.huellitas.R.drawable.logo_white
+                     else com.uade.huellitas.R.drawable.logo_splash
             ),
             contentDescription = "Logo Huellitas",
             modifier = Modifier

@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import com.uade.huellitas.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -60,7 +61,7 @@ fun RegisterScreen(
     ) {
         Spacer(modifier = Modifier.height(64.dp))
         Image(
-            painter = painterResource(id = R.drawable.logo_register),
+            painter = painterResource(id = com.uade.huellitas.R.drawable.logo_register),
             contentDescription = "Crear cuenta",
             modifier = Modifier.width(240.dp)
         )

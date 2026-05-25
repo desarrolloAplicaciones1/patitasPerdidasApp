@@ -34,6 +34,11 @@ fun NavGraph(
                 },
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) { popUpTo(0) }
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
             )
         }

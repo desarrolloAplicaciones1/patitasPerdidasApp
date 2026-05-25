@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import com.uade.huellitas.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -58,7 +59,7 @@ fun LoginScreen(
 
         // Logo más grande y más abajo
         Image(
-            painter = painterResource(id = R.drawable.logo_login),
+            painter = painterResource(id = com.uade.huellitas.R.drawable.logo_login),
             contentDescription = "Huellitas",
             modifier = Modifier.width(280.dp)
         )
