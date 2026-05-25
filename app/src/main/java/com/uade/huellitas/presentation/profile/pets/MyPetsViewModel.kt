@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import com.uade.huellitas.domain.model.Pet
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class MyPetsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val appContainer = (application as HuellitasApplication).appContainer
     private val getMyPetsUseCase = appContainer.getMyPetsUseCase
     private val deletePetUseCase = appContainer.deletePetUseCase
 

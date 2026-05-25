@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import com.uade.huellitas.domain.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class EditProfileViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val appContainer = (application as HuellitasApplication).appContainer
     private val getCurrentUserUseCase = appContainer.getCurrentUserUseCase
     private val updateUserProfileUseCase = appContainer.updateUserProfileUseCase
     private val changePasswordUseCase = appContainer.changePasswordUseCase

@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class AlertDetailViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val appContainer = (application as HuellitasApplication).appContainer
     private val getAlertByIdUseCase = appContainer.getAlertByIdUseCase
     private val updateAlertUseCase = appContainer.updateAlertUseCase
     private val resolveAlertUseCase = appContainer.resolveAlertUseCase

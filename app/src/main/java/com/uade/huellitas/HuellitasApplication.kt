@@ -3,6 +3,6 @@
 import android.app.Application
 import com.uade.huellitas.di.AppContainer
 
-class PatitasPerdidasApplication : Application() {
+class HuellitasApplication : Application() {
     val appContainer: AppContainer by lazy { AppContainer(this) }
 }
