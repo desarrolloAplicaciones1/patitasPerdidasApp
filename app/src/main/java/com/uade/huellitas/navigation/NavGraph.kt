@@ -18,6 +18,7 @@ import com.uade.huellitas.presentation.map.MapScreen
 import com.uade.huellitas.presentation.onboarding.OnboardingScreen
 import com.uade.huellitas.presentation.profile.edit.EditProfileScreen
 import com.uade.huellitas.presentation.profile.ProfileScreen
+import com.uade.huellitas.presentation.profile.alerts.MyAlertsScreen
 import com.uade.huellitas.presentation.splash.SplashScreen
 
 @Composable
@@ -145,7 +146,16 @@ fun NavGraph(
         }
 
         composable(Screen.MyPets.route) { }
-        composable(Screen.MyAlerts.route) { }
+
+        composable(Screen.MyAlerts.route) {
+            MyAlertsScreen(
+                viewModel = appContainer.myAlertsViewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { alertId ->
+                    navController.navigate(Screen.AlertDetail.createRoute(alertId))
+                }
+            )
+        }
 
         composable(
             route = Screen.EditAlert.route,
