@@ -1,4 +1,4 @@
-﻿package com.uade.huellitas.data.repository
+package com.uade.huellitas.data.repository
 
 import com.uade.huellitas.data.local.dao.AlertDao
 import com.uade.huellitas.data.mapper.toDomain
@@ -8,14 +8,38 @@ import com.uade.huellitas.domain.model.Alert
 import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.repository.AlertRepository as AlertRepositoryContract
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class AlertRepository(
     private val alertDao: AlertDao,
     private val remoteDataSource: FirestoreAlertDataSource
 ) : AlertRepositoryContract {
-    override fun getActiveAlerts(): Flow<List<Alert>> =
-        alertDao.getActiveAlerts().map { it.map { entity -> entity.toDomain() } }
+
+    /**
+     * Offline-first: emite Room inmediatamente, luego mantiene Room actualizado
+     * con un listener reactivo de Firestore. Cada vez que Room cambia, la UI
+     * se actualiza automáticamente sin polling.
+     */
+    override fun getActiveAlerts(): Flow<List<Alert>> = channelFlow {
+        // 1. Emite Room al instante (respuesta inmediata, funciona offline)
+        launch {
+            alertDao.getActiveAlerts()
+                .map { list -> list.map { it.toDomain() } }
+                .collect { send(it) }
+        }
+
+        // 2. Escucha Firestore en tiempo real y sincroniza Room
+        //    El Flow de Room arriba re-emite automáticamente con datos frescos
+        try {
+            remoteDataSource.observeActiveAlerts().collect { remoteAlerts ->
+                remoteAlerts.forEach { alertDao.insert(it.toEntity(pendingSync = false)) }
+            }
+        } catch (_: Exception) {
+            // Sin red — Room sigue emitiendo sus datos locales
+        }
+    }
 
     override fun getMyAlerts(uid: String): Flow<List<Alert>> =
         alertDao.getMyAlerts(uid).map { it.map { entity -> entity.toDomain() } }
