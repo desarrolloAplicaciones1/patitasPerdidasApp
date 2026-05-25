@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.desarrolloaplicaciones1.patitasperdidas"
+    namespace = "com.uade.huellitas"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.desarrolloaplicaciones1.patitasperdidas"
+        applicationId = "com.uade.huellitas"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

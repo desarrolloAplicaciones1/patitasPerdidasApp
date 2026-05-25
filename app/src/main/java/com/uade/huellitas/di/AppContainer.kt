@@ -1,0 +1,107 @@
+﻿package com.uade.huellitas.di
+
+import android.content.Context
+import com.uade.huellitas.data.local.AppDatabase
+import com.uade.huellitas.data.remote.FirebaseAuthDataSource
+import com.uade.huellitas.data.remote.FirestoreAlertDataSource
+import com.uade.huellitas.data.remote.FirestoreUserDataSource
+import com.uade.huellitas.data.repository.AndroidGeocodingRepository
+import com.uade.huellitas.data.repository.AlertRepository as AlertRepositoryImpl
+import com.uade.huellitas.data.repository.FirebasePhotoStorageRepository
+import com.uade.huellitas.data.repository.PetRepository as PetRepositoryImpl
+import com.uade.huellitas.data.repository.PreferencesSettingsRepository
+import com.uade.huellitas.data.repository.UserRepository as UserRepositoryImpl
+import com.uade.huellitas.domain.repository.GeocodingRepository as GeocodingRepositoryContract
+import com.uade.huellitas.domain.repository.AlertRepository as AlertRepositoryContract
+import com.uade.huellitas.domain.repository.PetRepository as PetRepositoryContract
+import com.uade.huellitas.domain.repository.PhotoStorageRepository as PhotoStorageRepositoryContract
+import com.uade.huellitas.domain.repository.SettingsRepository as SettingsRepositoryContract
+import com.uade.huellitas.domain.repository.UserRepository as UserRepositoryContract
+import com.uade.huellitas.domain.usecase.alert.CreateAlertUseCase
+import com.uade.huellitas.domain.usecase.alert.DeleteAlertUseCase
+import com.uade.huellitas.domain.usecase.alert.GetActiveAlertsUseCase
+import com.uade.huellitas.domain.usecase.alert.GetAlertByIdUseCase
+import com.uade.huellitas.domain.usecase.alert.GetMyAlertsUseCase
+import com.uade.huellitas.domain.usecase.alert.ResolveAlertUseCase
+import com.uade.huellitas.domain.usecase.alert.SyncAlertsUseCase
+import com.uade.huellitas.domain.usecase.alert.UpdateAlertUseCase
+import com.uade.huellitas.domain.usecase.auth.GetCurrentUserIdUseCase
+import com.uade.huellitas.domain.usecase.auth.IsLoggedInUseCase
+import com.uade.huellitas.domain.usecase.auth.LoginUseCase
+import com.uade.huellitas.domain.usecase.auth.LogoutUseCase
+import com.uade.huellitas.domain.usecase.auth.RegisterUserUseCase
+import com.uade.huellitas.domain.usecase.location.GeocodeAddressUseCase
+import com.uade.huellitas.domain.usecase.media.UploadAlertPhotoUseCase
+import com.uade.huellitas.domain.usecase.pet.DeletePetUseCase
+import com.uade.huellitas.domain.usecase.pet.GetMyPetsUseCase
+import com.uade.huellitas.domain.usecase.pet.GetPetByIdUseCase
+import com.uade.huellitas.domain.usecase.pet.SavePetUseCase
+import com.uade.huellitas.domain.usecase.pet.UpdatePetUseCase
+import com.uade.huellitas.domain.usecase.settings.GetAppSettingsUseCase
+import com.uade.huellitas.domain.usecase.settings.SetAlertRadiusUseCase
+import com.uade.huellitas.domain.usecase.settings.SetDarkModeUseCase
+import com.uade.huellitas.domain.usecase.settings.SetOfflineModeUseCase
+import com.uade.huellitas.domain.usecase.user.ChangePasswordUseCase
+import com.uade.huellitas.domain.usecase.user.GetCurrentUserUseCase
+import com.uade.huellitas.domain.usecase.user.SyncCurrentUserProfileUseCase
+import com.uade.huellitas.domain.usecase.user.UpdateUserProfileUseCase
+
+class AppContainer(context: Context) {
+    private val database = AppDatabase.getInstance(context)
+
+    private val authDataSource = FirebaseAuthDataSource()
+    private val firestoreAlertDataSource = FirestoreAlertDataSource()
+    private val firestoreUserDataSource = FirestoreUserDataSource()
+
+    private val userRepository: UserRepositoryContract =
+        UserRepositoryImpl(database.userDao(), authDataSource, firestoreUserDataSource)
+
+    private val petRepository: PetRepositoryContract =
+        PetRepositoryImpl(database.petDao())
+
+    private val alertRepository: AlertRepositoryContract =
+        AlertRepositoryImpl(database.alertDao(), firestoreAlertDataSource)
+
+    private val settingsRepository: SettingsRepositoryContract =
+        PreferencesSettingsRepository(context)
+
+    private val geocodingRepository: GeocodingRepositoryContract =
+        AndroidGeocodingRepository(context)
+
+    private val photoStorageRepository: PhotoStorageRepositoryContract =
+        FirebasePhotoStorageRepository()
+
+    val getCurrentUserIdUseCase = GetCurrentUserIdUseCase(userRepository)
+    val isLoggedInUseCase = IsLoggedInUseCase(userRepository)
+    val loginUseCase = LoginUseCase(userRepository)
+    val logoutUseCase = LogoutUseCase(userRepository)
+    val registerUserUseCase = RegisterUserUseCase(userRepository)
+
+    val getCurrentUserUseCase = GetCurrentUserUseCase(userRepository)
+    val syncCurrentUserProfileUseCase = SyncCurrentUserProfileUseCase(userRepository)
+    val updateUserProfileUseCase = UpdateUserProfileUseCase(userRepository)
+    val changePasswordUseCase = ChangePasswordUseCase(userRepository)
+
+    val getActiveAlertsUseCase = GetActiveAlertsUseCase(alertRepository)
+    val getAlertByIdUseCase = GetAlertByIdUseCase(alertRepository)
+    val getMyAlertsUseCase = GetMyAlertsUseCase(alertRepository, userRepository)
+    val createAlertUseCase = CreateAlertUseCase(alertRepository)
+    val updateAlertUseCase = UpdateAlertUseCase(alertRepository)
+    val resolveAlertUseCase = ResolveAlertUseCase(alertRepository)
+    val deleteAlertUseCase = DeleteAlertUseCase(alertRepository)
+    val syncAlertsUseCase = SyncAlertsUseCase(alertRepository)
+
+    val getMyPetsUseCase = GetMyPetsUseCase(petRepository, userRepository)
+    val getPetByIdUseCase = GetPetByIdUseCase(petRepository)
+    val savePetUseCase = SavePetUseCase(petRepository)
+    val updatePetUseCase = UpdatePetUseCase(petRepository)
+    val deletePetUseCase = DeletePetUseCase(petRepository)
+
+    val getAppSettingsUseCase = GetAppSettingsUseCase(settingsRepository)
+    val setDarkModeUseCase = SetDarkModeUseCase(settingsRepository)
+    val setAlertRadiusUseCase = SetAlertRadiusUseCase(settingsRepository)
+    val setOfflineModeUseCase = SetOfflineModeUseCase(settingsRepository)
+
+    val geocodeAddressUseCase = GeocodeAddressUseCase(geocodingRepository)
+    val uploadAlertPhotoUseCase = UploadAlertPhotoUseCase(photoStorageRepository)
+}
