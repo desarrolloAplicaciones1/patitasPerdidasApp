@@ -1,0 +1,23 @@
+﻿package com.uade.huellitas.data.local.dao
+
+import androidx.room.*
+import com.uade.huellitas.data.local.entity.UserEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM users WHERE uid = :uid")
+    fun getUser(uid: String): Flow<UserEntity?>
+
+    @Query("SELECT * FROM users WHERE uid = :uid")
+    suspend fun getById(uid: String): UserEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(user: UserEntity)
+
+    @Update
+    suspend fun update(user: UserEntity)
+
+    @Delete
+    suspend fun delete(user: UserEntity)
+}
