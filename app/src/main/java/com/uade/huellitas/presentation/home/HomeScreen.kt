@@ -199,7 +199,7 @@ private fun HomeHeader(userName: String?, onFilterClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(greeting, fontFamily = Urbanist, fontWeight = FontWeight.Normal,
                 fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("¿Estás lista para ayudar?", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
+            Text("¿Todo listo para ayudar?", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
                 fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
         }
         IconButton(onClick = onFilterClick) {
