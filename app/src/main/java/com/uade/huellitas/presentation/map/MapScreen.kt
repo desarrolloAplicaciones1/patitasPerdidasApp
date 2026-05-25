@@ -1,16 +1,14 @@
-﻿package com.uade.huellitas.presentation.map
+package com.uade.huellitas.presentation.map
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -58,11 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -71,12 +64,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Circle
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.uade.huellitas.domain.model.PetType
 import com.uade.huellitas.presentation.location.RequestLocationPermissionEffect
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.Urbanist
 
 private val radiusOptions = listOf(1, 3, 5, 10, 20)
+private val buenosAires = LatLng(-34.6037, -58.3816)
 
 @Composable
 fun MapScreen(
@@ -119,10 +123,8 @@ fun MapScreen(
             }
 
             is MapUiState.Success -> {
-                MapBackground(
-                    modifier = Modifier.fillMaxSize(),
-                    radiusKm = state.selectedRadiusKm,
-                    alerts = state.alerts,
+                GoogleMapView(
+                    state = state,
                     onAlertTap = { selectedAlert = it }
                 )
 
@@ -224,7 +226,12 @@ fun MapScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("No hay alertas en ${state.selectedRadiusKm}km", fontFamily = Urbanist, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "No hay alertas en ${state.selectedRadiusKm}km",
+                                            fontFamily = Urbanist,
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             } else {
@@ -271,6 +278,65 @@ fun MapScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GoogleMapView(
+    state: MapUiState.Success,
+    onAlertTap: (MapAlert) -> Unit
+) {
+    val center = remember(state.center) {
+        if (state.center.latitude != 0.0 || state.center.longitude != 0.0) {
+            LatLng(state.center.latitude, state.center.longitude)
+        } else {
+            buenosAires
+        }
+    }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(center, 13f)
+    }
+
+    LaunchedEffect(center) {
+        cameraPositionState.animate(
+            CameraUpdateFactory.newLatLngZoom(center, 13f)
+        )
+    }
+
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        properties = MapProperties(isMyLocationEnabled = false),
+        uiSettings = MapUiSettings(
+            zoomControlsEnabled = false,
+            myLocationButtonEnabled = false
+        )
+    ) {
+        Circle(
+            center = center,
+            radius = state.selectedRadiusKm * 1000.0,
+            fillColor = HuellitasTeal.copy(alpha = 0.07f),
+            strokeColor = HuellitasTeal.copy(alpha = 0.55f),
+            strokeWidth = 3f
+        )
+
+        state.alerts.filter { it.hasPreciseLocation }.forEach { alert ->
+            Marker(
+                state = MarkerState(
+                    position = LatLng(
+                        alert.source.location.latitude,
+                        alert.source.location.longitude
+                    )
+                ),
+                title = alert.name,
+                snippet = "${alert.typeLabel} · ${alert.distanceLabel}",
+                onClick = {
+                    onAlertTap(alert)
+                    true
+                }
+            )
         }
     }
 }
@@ -382,99 +448,6 @@ private fun BoxScope.RadiusSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
             ) {
                 Text("Guardar", fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-private fun MapBackground(
-    modifier: Modifier,
-    radiusKm: Int,
-    alerts: List<MapAlert>,
-    onAlertTap: (MapAlert) -> Unit
-) {
-    Box(modifier = modifier) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-
-            drawRect(Color(0xFFE8F4F0))
-
-            val blocks = listOf(
-                Offset(0.05f, 0.05f) to Size(0.18f, 0.22f),
-                Offset(0.27f, 0.05f) to Size(0.14f, 0.22f),
-                Offset(0.46f, 0.05f) to Size(0.20f, 0.15f),
-                Offset(0.70f, 0.05f) to Size(0.25f, 0.18f),
-                Offset(0.05f, 0.32f) to Size(0.22f, 0.18f),
-                Offset(0.32f, 0.32f) to Size(0.16f, 0.18f),
-                Offset(0.54f, 0.25f) to Size(0.12f, 0.20f),
-                Offset(0.71f, 0.28f) to Size(0.24f, 0.16f),
-                Offset(0.05f, 0.56f) to Size(0.18f, 0.20f),
-                Offset(0.28f, 0.56f) to Size(0.20f, 0.16f),
-                Offset(0.54f, 0.52f) to Size(0.16f, 0.20f),
-                Offset(0.75f, 0.50f) to Size(0.20f, 0.22f),
-                Offset(0.08f, 0.80f) to Size(0.16f, 0.16f),
-                Offset(0.30f, 0.78f) to Size(0.22f, 0.18f),
-                Offset(0.58f, 0.76f) to Size(0.18f, 0.20f),
-                Offset(0.80f, 0.76f) to Size(0.16f, 0.18f)
-            )
-            blocks.forEach { (pos, size) ->
-                drawRect(Color(0xFFD4EBE4), topLeft = Offset(w * pos.x, h * pos.y), size = Size(w * size.width, h * size.height))
-            }
-
-            val streetColor = Color(0xFFBFD8D0)
-            listOf(0.28f, 0.53f, 0.75f).forEach { y ->
-                drawRect(streetColor, topLeft = Offset(0f, h * y), size = Size(w, h * 0.04f))
-            }
-            listOf(0.25f, 0.50f, 0.70f).forEach { x ->
-                drawRect(streetColor, topLeft = Offset(w * x, 0f), size = Size(w * 0.04f, h))
-            }
-
-            drawRect(Color(0xFF9DC9B8).copy(alpha = 0.5f), topLeft = Offset(w * 0.54f, h * 0.05f), size = Size(w * 0.12f, h * 0.18f))
-
-            val cx = w * 0.45f
-            val cy = h * 0.45f
-            val radiusPx = (radiusKm.toFloat() / 20f) * minOf(w, h) * 0.38f + minOf(w, h) * 0.10f
-            drawCircle(HuellitasTeal.copy(alpha = 0.07f), radiusPx, Offset(cx, cy))
-            drawCircle(
-                color = HuellitasTeal.copy(alpha = 0.55f),
-                radius = radiusPx,
-                center = Offset(cx, cy),
-                style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 8f)))
-            )
-            drawCircle(Color(0xFF1565C0).copy(alpha = 0.25f), 18.dp.toPx(), Offset(cx, cy))
-            drawCircle(Color(0xFF1565C0), 10.dp.toPx(), Offset(cx, cy))
-            drawCircle(Color.White, 5.dp.toPx(), Offset(cx, cy))
-        }
-
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val width = maxWidth
-            val height = maxHeight
-
-            alerts.forEach { alert ->
-                val pinColor = if (alert.petType == PetType.CAT) Color(0xFF12A99F) else Color(0xFF1E5955)
-                Box(
-                    modifier = Modifier
-                        .offset(x = width * alert.offsetX - 10.dp, y = height * alert.offsetY - 28.dp)
-                        .size(width = 20.dp, height = 28.dp)
-                        .clickable { onAlertTap(alert) }
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val pinWidth = size.width
-                        val pinHeight = size.height
-                        val radius = pinWidth / 2f
-
-                        drawCircle(color = pinColor, radius = radius, center = Offset(radius, radius))
-                        val path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(radius * 0.4f, radius * 1.6f)
-                            lineTo(pinWidth * 0.6f, radius * 1.6f)
-                            lineTo(radius, pinHeight)
-                            close()
-                        }
-                        drawPath(path, color = pinColor)
-                    }
-                }
             }
         }
     }

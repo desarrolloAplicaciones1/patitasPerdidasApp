@@ -9,7 +9,8 @@ sealed class MapUiState {
     data class Success(
         val alerts: List<MapAlert>,
         val selectedRadiusKm: Int,
-        val centerLabel: String
+        val centerLabel: String,
+        val center: Location
     ) : MapUiState()
     data class Error(val message: String) : MapUiState()
 }
