@@ -1,11 +1,13 @@
 ﻿package com.uade.huellitas.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.uade.huellitas.HuellitasApplication
 import com.uade.huellitas.presentation.auth.LoginScreen
 import com.uade.huellitas.presentation.auth.RegisterScreen
 import com.uade.huellitas.presentation.alert.create.CreateAlertScreen
@@ -23,6 +25,8 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Splash.route
 ) {
+    val appContainer = (LocalContext.current.applicationContext as HuellitasApplication).appContainer
+
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable(Screen.Splash.route) {
@@ -45,6 +49,7 @@ fun NavGraph(
 
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
+                viewModel = appContainer.onboardingViewModel,
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }

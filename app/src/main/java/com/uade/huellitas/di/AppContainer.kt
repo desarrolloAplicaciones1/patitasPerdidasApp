@@ -42,10 +42,12 @@ import com.uade.huellitas.domain.usecase.settings.GetAppSettingsUseCase
 import com.uade.huellitas.domain.usecase.settings.SetAlertRadiusUseCase
 import com.uade.huellitas.domain.usecase.settings.SetDarkModeUseCase
 import com.uade.huellitas.domain.usecase.settings.SetOfflineModeUseCase
+import com.uade.huellitas.domain.usecase.onboarding.CompleteOnboardingUseCase
 import com.uade.huellitas.domain.usecase.user.ChangePasswordUseCase
 import com.uade.huellitas.domain.usecase.user.GetCurrentUserUseCase
 import com.uade.huellitas.domain.usecase.user.SyncCurrentUserProfileUseCase
 import com.uade.huellitas.domain.usecase.user.UpdateUserProfileUseCase
+import com.uade.huellitas.presentation.onboarding.OnboardingViewModel
 
 class AppContainer(context: Context) {
     private val database = AppDatabase.getInstance(context)
@@ -107,4 +109,7 @@ class AppContainer(context: Context) {
 
     val geocodeAddressUseCase = GeocodeAddressUseCase(geocodingRepository)
     val uploadAlertPhotoUseCase = UploadAlertPhotoUseCase(photoStorageRepository)
+
+    val completeOnboardingUseCase = CompleteOnboardingUseCase(onboardingPreferences)
+    val onboardingViewModel = OnboardingViewModel(completeOnboardingUseCase)
 }
