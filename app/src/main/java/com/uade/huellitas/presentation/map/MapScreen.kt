@@ -72,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.uade.huellitas.domain.model.PetType
+import com.uade.huellitas.presentation.location.RequestLocationPermissionEffect
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.Urbanist
 
@@ -88,6 +89,10 @@ fun MapScreen(
     var showBottomSheet by remember { mutableStateOf(true) }
     var selectedAlert by remember { mutableStateOf<MapAlert?>(null) }
     var tempRadius by remember { mutableStateOf(radiusOptions[1]) }
+
+    RequestLocationPermissionEffect(
+        onPermissionGranted = viewModel::refreshReferenceLocation
+    )
 
     LaunchedEffect(uiState) {
         val success = uiState as? MapUiState.Success ?: return@LaunchedEffect
