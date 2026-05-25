@@ -31,6 +31,7 @@ import com.uade.huellitas.domain.usecase.auth.IsLoggedInUseCase
 import com.uade.huellitas.domain.usecase.auth.LoginUseCase
 import com.uade.huellitas.domain.usecase.auth.LogoutUseCase
 import com.uade.huellitas.domain.usecase.auth.RegisterUserUseCase
+import com.uade.huellitas.domain.usecase.auth.SendPasswordResetEmailUseCase
 import com.uade.huellitas.domain.usecase.location.GeocodeAddressUseCase
 import com.uade.huellitas.domain.usecase.media.UploadAlertPhotoUseCase
 import com.uade.huellitas.domain.usecase.pet.DeletePetUseCase
@@ -79,6 +80,7 @@ class AppContainer(context: Context) {
     val loginUseCase = LoginUseCase(userRepository)
     val logoutUseCase = LogoutUseCase(userRepository)
     val registerUserUseCase = RegisterUserUseCase(userRepository)
+    val sendPasswordResetEmailUseCase = SendPasswordResetEmailUseCase(userRepository)
 
     val getCurrentUserUseCase = GetCurrentUserUseCase(userRepository)
     val syncCurrentUserProfileUseCase = SyncCurrentUserProfileUseCase(userRepository)
