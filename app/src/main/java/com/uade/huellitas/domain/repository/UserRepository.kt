@@ -15,4 +15,5 @@ interface UserRepository {
     suspend fun saveUserProfile(user: User)
     suspend fun updateUserProfile(user: User)
     suspend fun updatePassword(newPassword: String)
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
 }

@@ -67,6 +67,9 @@ class UserRepository(
     override suspend fun updatePassword(newPassword: String) =
         authDataSource.updatePassword(newPassword)
 
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> =
+        authDataSource.sendPasswordResetEmail(email)
+
     companion object {
         @Volatile private var INSTANCE: UserRepository? = null
 

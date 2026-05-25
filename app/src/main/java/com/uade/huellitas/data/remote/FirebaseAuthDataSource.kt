@@ -36,6 +36,10 @@ class FirebaseAuthDataSource {
         currentUser.updateProfile(request).await()
     }
 
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
+        auth.sendPasswordResetEmail(email).await()
+    }
+
     fun logout() = auth.signOut()
 
     private fun FirebaseUser.toAuthUserProfile(): AuthUserProfile = AuthUserProfile(

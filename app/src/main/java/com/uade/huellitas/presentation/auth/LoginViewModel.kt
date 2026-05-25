@@ -1,4 +1,4 @@
-﻿package com.uade.huellitas.presentation.auth
+package com.uade.huellitas.presentation.auth
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -11,11 +11,15 @@ import kotlinx.coroutines.launch
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val loginUseCase =
-        (application as HuellitasApplication).appContainer.loginUseCase
+    private val appContainer = (application as HuellitasApplication).appContainer
+    private val loginUseCase = appContainer.loginUseCase
+    private val sendPasswordResetEmailUseCase = appContainer.sendPasswordResetEmailUseCase
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
@@ -24,9 +28,26 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val uid = loginUseCase(email, password)
                 _uiState.value = AuthUiState.Success(uid)
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.message ?: "Error al iniciar sesion")
+                _uiState.value = AuthUiState.Error(e.message ?: "Error al iniciar sesión")
             }
         }
+    }
+
+    fun onForgotPassword(email: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            val result = sendPasswordResetEmailUseCase(email)
+            _uiState.value = AuthUiState.Idle
+            _snackbarMessage.value = if (result.isSuccess) {
+                "Revisá tu email para restablecer tu contraseña"
+            } else {
+                result.exceptionOrNull()?.message ?: "Error al enviar el email"
+            }
+        }
+    }
+
+    fun clearSnackbarMessage() {
+        _snackbarMessage.value = null
     }
 
     fun resetState() {
