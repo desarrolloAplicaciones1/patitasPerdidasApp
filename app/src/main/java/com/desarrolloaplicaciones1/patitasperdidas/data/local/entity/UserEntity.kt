@@ -10,5 +10,6 @@ data class UserEntity(
     val email: String,
     val phone: String?,
     val avatarUrl: String?,
+    val location: String?,
     val createdAt: Long
 )

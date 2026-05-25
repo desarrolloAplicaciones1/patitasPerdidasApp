@@ -8,8 +8,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.desarrolloaplicaciones1.patitasperdidas.presentation.auth.LoginScreen
 import com.desarrolloaplicaciones1.patitasperdidas.presentation.auth.RegisterScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.create.CreateAlertScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.create.ExpressAlertScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.detail.AlertDetailScreen
 import com.desarrolloaplicaciones1.patitasperdidas.presentation.home.HomeScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.map.MapScreen
 import com.desarrolloaplicaciones1.patitasperdidas.presentation.onboarding.OnboardingScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.profile.EditProfileScreen
+import com.desarrolloaplicaciones1.patitasperdidas.presentation.profile.ProfileScreen
 import com.desarrolloaplicaciones1.patitasperdidas.presentation.splash.SplashScreen
 
 @Composable
@@ -22,7 +28,9 @@ fun NavGraph(
         composable(Screen.Splash.route) {
             SplashScreen(
                 onNavigateToOnboarding = {
-                    navController.navigate(Screen.Onboarding.route)
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 },
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) { popUpTo(0) }
@@ -32,7 +40,11 @@ fun NavGraph(
 
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
-                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -61,6 +73,33 @@ fun NavGraph(
                 },
                 onLogout = {
                     navController.navigate(Screen.Login.route) { popUpTo(0) }
+                },
+                onNavigateToCreateAlert = { navController.navigate(Screen.CreateAlert.route) },
+                onNavigateToExpressAlert = { navController.navigate(Screen.ExpressAlert.route) },
+                onNavigateToMap = { navController.navigate(Screen.Map.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+            )
+        }
+
+        composable(Screen.CreateAlert.route) {
+            CreateAlertScreen(
+                onBack = { navController.popBackStack() },
+                onAlertCreated = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ExpressAlert.route) {
+            ExpressAlertScreen(
+                onBack = { navController.popBackStack() },
+                onPublished = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Map.route) {
+            MapScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { alertId ->
+                    navController.navigate(Screen.AlertDetail.createRoute(alertId))
                 }
             )
         }
@@ -70,31 +109,37 @@ fun NavGraph(
             arguments = listOf(navArgument("alertId") { type = NavType.StringType })
         ) { backStackEntry ->
             val alertId = backStackEntry.arguments?.getString("alertId") ?: return@composable
-            // TODO: AlertDetailScreen(alertId = alertId, onBack = { navController.popBackStack() })
+            AlertDetailScreen(
+                alertId = alertId,
+                onBack = { navController.popBackStack() }
+            )
         }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) { popUpTo(0) }
+                },
+                onNavigateToAlertDetail = { alertId ->
+                    navController.navigate(Screen.AlertDetail.createRoute(alertId))
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                }
+            )
+        }
+
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.MyPets.route) { }
+        composable(Screen.MyAlerts.route) { }
 
         composable(
             route = Screen.EditAlert.route,
             arguments = listOf(navArgument("alertId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val alertId = backStackEntry.arguments?.getString("alertId") ?: return@composable
-            // TODO: EditAlertScreen(alertId = alertId, onBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.MyPets.route) {
-            // TODO: MyPetsScreen(onAddPet = { navController.navigate(Screen.AddPet.route) })
-        }
-
-        composable(Screen.AddPet.route) {
-            // TODO: AddPetScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(
-            route = Screen.EditPet.route,
-            arguments = listOf(navArgument("petId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val petId = backStackEntry.arguments?.getString("petId") ?: return@composable
-            // TODO: EditPetScreen(petId = petId, onBack = { navController.popBackStack() })
-        }
+        ) { }
     }
 }
