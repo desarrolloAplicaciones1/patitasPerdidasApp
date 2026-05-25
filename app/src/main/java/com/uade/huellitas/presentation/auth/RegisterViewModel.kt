@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 class RegisterViewModel(application: Application) : AndroidViewModel(application) {
 
     private val registerUserUseCase =
-        (application as PatitasPerdidasApplication).appContainer.registerUserUseCase
+        (application as HuellitasApplication).appContainer.registerUserUseCase
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()

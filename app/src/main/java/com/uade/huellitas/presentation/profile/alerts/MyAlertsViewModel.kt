@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 class MyAlertsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val getMyAlertsUseCase =
-        (application as PatitasPerdidasApplication).appContainer.getMyAlertsUseCase
+        (application as HuellitasApplication).appContainer.getMyAlertsUseCase
 
     val uiState: StateFlow<MyAlertsUiState> =
         getMyAlertsUseCase()

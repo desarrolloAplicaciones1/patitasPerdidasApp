@@ -3,7 +3,7 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.PatitasPerdidasApplication
+import com.uade.huellitas.HuellitasApplication
 import com.uade.huellitas.domain.model.Alert
 import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.Location
@@ -15,7 +15,7 @@ import java.util.UUID
 
 class ExpressAlertViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val appContainer = (application as PatitasPerdidasApplication).appContainer
+    private val appContainer = (application as HuellitasApplication).appContainer
     private val createAlertUseCase = appContainer.createAlertUseCase
     private val getCurrentUserIdUseCase = appContainer.getCurrentUserIdUseCase
     private val geocodeAddressUseCase = appContainer.geocodeAddressUseCase

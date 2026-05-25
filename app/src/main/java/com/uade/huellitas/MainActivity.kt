@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val appContainer = (application as PatitasPerdidasApplication).appContainer
+            val appContainer = (application as HuellitasApplication).appContainer
             val settings = appContainer.getAppSettingsUseCase()
                 .collectAsStateWithLifecycle(initialValue = AppSettings())
             ThemeState.isDarkMode = settings.value.darkModeEnabled
