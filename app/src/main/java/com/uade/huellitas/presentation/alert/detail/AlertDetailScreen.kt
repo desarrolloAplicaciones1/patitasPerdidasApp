@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -158,17 +159,29 @@ private fun AlertDetailContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
-                .background(Color(0xFFB2EDED))
+                .background(Color(0xFFEEEEEE))
         ) {
-            val photoUrl = if (alert.photoUrls.isNotEmpty()) alert.photoUrls.first()
-            else "https://images.dog.ceo/breeds/retriever-golden/n02099601_3004.jpg"
-
-            AsyncImage(
-                model = photoUrl,
-                contentDescription = "Foto de ${alert.petName}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            val photoUrl = alert.photoUrls.firstOrNull()
+            if (photoUrl != null) {
+                AsyncImage(
+                    model = photoUrl,
+                    contentDescription = "Foto de ${alert.petName}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Pets,
+                        contentDescription = null,
+                        tint = Color(0xFFBBBBBB),
+                        modifier = Modifier.size(80.dp)
+                    )
+                }
+            }
 
             // Back button
             Box(
