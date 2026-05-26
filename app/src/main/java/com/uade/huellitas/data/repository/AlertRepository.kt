@@ -41,7 +41,10 @@ class AlertRepository(
             remoteDataSource.saveAlert(alert)
             alertDao.insert(alert.toEntity(pendingSync = false))
         } catch (e: Exception) {
-            // queda pendingSync = true; se sincroniza al reconectar
+            throw IllegalStateException(
+                "El aviso se guardo solo en este dispositivo. No se pudo sincronizar con Firebase: ${e.message ?: "error desconocido"}.",
+                e
+            )
         }
     }
 
