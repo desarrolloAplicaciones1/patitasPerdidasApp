@@ -12,6 +12,7 @@ import com.uade.huellitas.domain.model.PetType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -20,6 +21,7 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
     private val appContainer = (application as HuellitasApplication).appContainer
     private val createAlertUseCase = appContainer.createAlertUseCase
     private val getCurrentUserIdUseCase = appContainer.getCurrentUserIdUseCase
+    private val getCurrentUserUseCase = appContainer.getCurrentUserUseCase
     private val geocodeAddressUseCase = appContainer.geocodeAddressUseCase
     private val uploadAlertPhotoUseCase = appContainer.uploadAlertPhotoUseCase
 
@@ -54,7 +56,9 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.value = CreateAlertUiState.Loading
             try {
                 val now = System.currentTimeMillis()
-                val resolvedLocation = geocodeAddressUseCase(form.address)
+                val userLocationHint = getCurrentUserUseCase().first()?.location
+                val geocodingQuery = buildGeocodingQuery(form.address, userLocationHint)
+                val resolvedLocation = geocodeAddressUseCase(geocodingQuery)
                     ?: Location(
                         latitude = form.latitude ?: 0.0,
                         longitude = form.longitude ?: 0.0,
@@ -94,5 +98,22 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
 
     fun resetState() {
         _uiState.value = CreateAlertUiState.Idle
+    }
+
+    private fun buildGeocodingQuery(address: String, userLocationHint: String?): String {
+        val normalizedAddress = address.trim()
+        if (normalizedAddress.isBlank()) return normalizedAddress
+        if (normalizedAddress.contains(",")) return normalizedAddress
+
+        val contextHint = userLocationHint
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: DEFAULT_LOCATION_HINT
+
+        return "$normalizedAddress, $contextHint"
+    }
+
+    companion object {
+        private const val DEFAULT_LOCATION_HINT = "CABA, Argentina"
     }
 }

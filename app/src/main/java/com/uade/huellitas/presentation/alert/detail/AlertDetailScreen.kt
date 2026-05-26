@@ -99,10 +99,10 @@ private fun AlertDetailContent(
         AlertDialog(
             onDismissRequest = { showResolveDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Â¿Marcar como resuelto?", fontFamily = Urbanist,
+            title = { Text("Marcar como resuelto?", fontFamily = Urbanist,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground) },
-            text = { Text("El aviso dejarÃ¡ de aparecer en el feed.", fontFamily = Urbanist,
+            text = { Text("El aviso dejara de aparecer en el feed.", fontFamily = Urbanist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 TextButton(onClick = { showResolveDialog = false; onResolve() }) {
@@ -122,10 +122,10 @@ private fun AlertDetailContent(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Â¿Eliminar aviso?", fontFamily = Urbanist,
+            title = { Text("Eliminar aviso?", fontFamily = Urbanist,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground) },
-            text = { Text("Esta acciÃ³n no se puede deshacer.", fontFamily = Urbanist,
+            text = { Text("Esta accion no se puede deshacer.", fontFamily = Urbanist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; onDelete() }) {
@@ -217,7 +217,7 @@ private fun AlertDetailContent(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Nombre + lÃ¡piz
+            // Nombre + lapiz
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -287,13 +287,13 @@ private fun AlertDetailContent(
                     append(when (alert.petType) {
                         PetType.DOG -> "Perro"; PetType.CAT -> "Gato"; else -> "Animal"
                     })
-                    if (!alert.breed.isNullOrBlank()) append(" Â· ${alert.breed}")
+                    if (!alert.breed.isNullOrBlank()) append(" - ${alert.breed}")
                 },
                 fontFamily = Urbanist, fontWeight = FontWeight.Normal,
                 fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // UbicaciÃ³n
+            // Ubicacion
             if (!alert.location.address.isNullOrBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, contentDescription = null,
@@ -301,14 +301,14 @@ private fun AlertDetailContent(
                         modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "${alert.location.address} Â· ${timeAgo(alert.createdAt)}",
+                        "${alert.location.address} - ${timeAgo(alert.createdAt)}",
                         fontFamily = Urbanist, fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Grid de datos â€” usa colores del tema
+            // Grid de datos
             val gridBg = if (MaterialTheme.colorScheme.background == Color(0xFF1C1C1C) ||
                 MaterialTheme.colorScheme.background.red < 0.2f)
                 Color(0xFF1A3333) else Color(0xFFE8F7F6)
@@ -333,13 +333,13 @@ private fun AlertDetailContent(
                                 )
                             } else {
                                 Text(
-                                    editColor.ifBlank { "â€”" }, fontFamily = Urbanist,
+                                    editColor.ifBlank { "-" }, fontFamily = Urbanist,
                                     fontSize = 15.sp,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                             }
                         }
-                        DetailCell("COLLAR", "â€”", modifier = Modifier.weight(1f))
+                        DetailCell("COLLAR", "-", modifier = Modifier.weight(1f))
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
@@ -361,10 +361,10 @@ private fun AlertDetailContent(
                 }
             }
 
-            // DescripciÃ³n editable inline
+            // Descripcion editable inline
             Column {
                 Text(
-                    "DESCRIPCIÃ“N",
+                    "DESCRIPCION",
                     fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.drawBehind {
@@ -405,7 +405,7 @@ private fun AlertDetailContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // BotÃ³n guardar â€” solo en modo ediciÃ³n
+            // Boton guardar solo en modo edicion
             if (isEditing) {
                 Button(
                     onClick = {
@@ -424,7 +424,7 @@ private fun AlertDetailContent(
                 }
             }
 
-            // Botones normales â€” ocultos en modo ediciÃ³n
+            // Botones normales ocultos en modo edicion
             if (!isEditing) {
                 // Contactar por WhatsApp
                 Button(
@@ -454,7 +454,7 @@ private fun AlertDetailContent(
                         shape = RoundedCornerShape(4.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal)
                     ) {
-                        Text("Resuelto âœ“", fontFamily = Urbanist,
+                        Text("Resuelto", fontFamily = Urbanist,
                             fontWeight = FontWeight.Normal, color = HuellitasTeal)
                     }
                     OutlinedButton(

@@ -1,4 +1,4 @@
-package com.uade.huellitas.presentation.profile.alerts
+﻿package com.uade.huellitas.presentation.profile.alerts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,10 +91,10 @@ fun MyAlertsScreen(
                             .padding(horizontal = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "🐾", fontSize = 64.sp)
+                        Text(text = "Sin avisos", fontSize = 20.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Todavía no publicaste ningún aviso",
+                            text = "Todavia no publicaste ningun aviso",
                             fontFamily = Urbanist,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp,

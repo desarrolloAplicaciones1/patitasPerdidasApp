@@ -1,12 +1,12 @@
 package com.uade.huellitas.data.remote
 
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uade.huellitas.domain.model.Alert
 import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.Location
 import com.uade.huellitas.domain.model.PetType
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -16,24 +16,37 @@ class FirestoreAlertDataSource {
     private val db = FirebaseFirestore.getInstance()
     private val alertsRef = db.collection("alerts")
 
-    // One-shot fetch (used by syncFromFirestore)
-    suspend fun getActiveAlerts(): List<Alert> =
-        alertsRef.whereEqualTo("status", "ACTIVE")
-            .get().await()
-            .documents.mapNotNull { it.toAlert() }
+    // One-shot fetch used by Room sync.
+    suspend fun getActiveAlerts(): List<Alert> {
+        val activeDocuments = alertsRef
+            .whereEqualTo(FIELD_STATUS, AlertStatus.ACTIVE.name)
+            .get()
+            .await()
+            .documents
 
-    // Reactive Firestore listener — emits whenever the collection changes
+        val allDocuments = alertsRef
+            .get()
+            .await()
+            .documents
+
+        return if (allDocuments.any { it.hasMissingStatus() }) {
+            mapVisibleAlerts(allDocuments)
+        } else {
+            mapVisibleAlerts(activeDocuments)
+        }
+    }
+
+    // Reactive listener for future realtime usage.
     fun observeActiveAlerts(): Flow<List<Alert>> = callbackFlow {
-        val listener = alertsRef
-            .whereEqualTo("status", "ACTIVE")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                val alerts = snapshot?.documents?.mapNotNull { it.toAlert() } ?: emptyList()
-                trySend(alerts)
+        val listener = alertsRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
             }
+
+            trySend(mapVisibleAlerts(snapshot?.documents.orEmpty()))
+        }
+
         awaitClose { listener.remove() }
     }
 
@@ -49,13 +62,27 @@ class FirestoreAlertDataSource {
         alertsRef.document(alertId).delete().await()
     }
 
+    private fun mapVisibleAlerts(documents: List<DocumentSnapshot>): List<Alert> {
+        val useLegacyFallback = documents.any { it.hasMissingStatus() }
+
+        return documents
+            .filter { document ->
+                if (useLegacyFallback) {
+                    document.hasMissingStatus() || document.hasActiveStatus()
+                } else {
+                    document.hasActiveStatus()
+                }
+            }
+            .mapNotNull { it.toAlert() }
+    }
+
     private fun DocumentSnapshot.toAlert(): Alert? = runCatching {
         Alert(
             id = id,
             ownerId = getString("ownerId")!!,
             petId = getString("petId"),
             type = AlertType.valueOf(getString("type")!!),
-            status = AlertStatus.valueOf(getString("status")!!),
+            status = getAlertStatus(),
             petName = getString("petName")!!,
             petType = PetType.valueOf(getString("petType")!!),
             breed = getString("breed"),
@@ -76,11 +103,26 @@ class FirestoreAlertDataSource {
         )
     }.getOrNull()
 
+    private fun DocumentSnapshot.getAlertStatus(): AlertStatus {
+        val rawStatus = getString(FIELD_STATUS)
+            ?.trim()
+            ?.ifBlank { null }
+            ?: AlertStatus.ACTIVE.name
+
+        return AlertStatus.valueOf(rawStatus.uppercase())
+    }
+
+    private fun DocumentSnapshot.hasMissingStatus(): Boolean =
+        getString(FIELD_STATUS).isNullOrBlank()
+
+    private fun DocumentSnapshot.hasActiveStatus(): Boolean =
+        getString(FIELD_STATUS)?.equals(AlertStatus.ACTIVE.name, ignoreCase = true) == true
+
     private fun Alert.toMap(): Map<String, Any?> = mapOf(
         "ownerId" to ownerId,
         "petId" to petId,
         "type" to type.name,
-        "status" to status.name,
+        FIELD_STATUS to status.name,
         "petName" to petName,
         "petType" to petType.name,
         "breed" to breed,
@@ -97,4 +139,8 @@ class FirestoreAlertDataSource {
         "createdAt" to createdAt,
         "updatedAt" to updatedAt
     )
+
+    companion object {
+        private const val FIELD_STATUS = "status"
+    }
 }
