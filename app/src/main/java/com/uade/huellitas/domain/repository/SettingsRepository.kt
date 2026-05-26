@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
     fun getSettings(): Flow<AppSettings>
+    suspend fun setFollowSystemTheme(enabled: Boolean)
     suspend fun setDarkModeEnabled(enabled: Boolean)
     suspend fun setAlertRadiusKm(radiusKm: Int)
     suspend fun setOfflineModeEnabled(enabled: Boolean)

@@ -249,13 +249,13 @@ ALERT
 | `OnboardingViewModel` | Marca el onboarding como completado y habilita el primer acceso al login. |
 | `LoginViewModel` | Usa `LoginUseCase` y `SendPasswordResetEmailUseCase`, y expone `AuthUiState`. |
 | `RegisterViewModel` | Usa `RegisterUserUseCase` para crear cuenta y guardar perfil local. |
-| `HomeViewModel` | Usa `GetActiveAlertsUseCase`, `ResolveReferenceLocationUseCase` y `FilterAlertsByRadiusUseCase` para combinar filtros de tipo, especie y radio GPS. |
+| `HomeViewModel` | Usa `GetActiveAlertsUseCase`, `ResolveReferenceLocationUseCase` y `FilterAlertsByRadiusUseCase` para combinar busqueda por nombre, filtros de tipo, especie y radio GPS. |
 | `CreateAlertViewModel` | Usa `GetCurrentUserIdUseCase`, `CreateAlertUseCase` y `UploadAlertPhotoUseCase`. |
 | `ExpressAlertViewModel` | Crea un aviso rapido sin foto, solo con zona y tipo. |
 | `AlertDetailViewModel` | Usa `GetAlertByIdUseCase`, `UpdateAlertUseCase`, `ResolveAlertUseCase` y `DeleteAlertUseCase`. |
 | `MapViewModel` | Usa `GetActiveAlertsUseCase`, `ResolveReferenceLocationUseCase` y `CalculateDistanceMetersUseCase` para poblar el mapa y calcular cercania real. |
 | `ProfileViewModel` | Usa `GetCurrentUserUseCase`, `GetMyAlertsUseCase` y `LogoutUseCase`. |
-| `EditProfileViewModel` | Usa `UpdateUserProfileUseCase` y `ChangePasswordUseCase` para persistir cambios del perfil. |
+| `EditProfileViewModel` | Usa `UpdateUserProfileUseCase`, `UploadProfilePhotoUseCase` y `ChangePasswordUseCase` para persistir nombre, telefono, avatar y credenciales. |
 | `MyAlertsViewModel` | Usa `GetMyAlertsUseCase` filtrado por el usuario autenticado. |
 | `MyPetsViewModel` | Usa `GetMyPetsUseCase` y `DeletePetUseCase`. |
 
@@ -299,12 +299,12 @@ ALERT
 
 | ID | Historia | Estado | Notas |
 |---|---|---|---|
-| HU-16 | Como usuario, quiero ver un listado de los avisos que yo publique para hacer seguimiento de mis reportes activos. | Completa | Backend y pantalla de perfil conectados. |
-| HU-17 | Como usuario, quiero editar mi nombre y datos de contacto en mi perfil. | Parcial | Hoy permite editar nombre, ubicacion y contrasena; el telefono aun no esta expuesto en la UI. |
+| HU-16 | Como usuario, quiero ver un listado de los avisos que yo publique para hacer seguimiento de mis reportes activos. | Completa | Perfil y pantalla dedicada con filtros para activos, resueltos y todos. |
+| HU-17 | Como usuario, quiero editar mi nombre y datos de contacto en mi perfil. | Completa | Permite editar nombre, telefono, ubicacion y contrasena. |
 | HU-19 | Como usuario, quiero recibir un email para restablecer mi contrasena si la olvide. | Completa | Integrado con Firebase Authentication. |
 | HU-21 | Como usuario, quiero ver los avisos filtrados por distancia GPS real desde mi ubicacion actual. | Completa | Requiere permiso de ubicacion; usa GPS real con fallback a ubicacion guardada. |
-| HU-22 | Como usuario, quiero buscar avisos por nombre de mascota desde el feed. | Pendiente | Falta query/filtro por nombre. |
-| HU-23 | Como usuario, quiero subir una foto de perfil para que otros usuarios puedan identificarme. | Pendiente | Falta picker, upload y persistencia del avatar. |
+| HU-22 | Como usuario, quiero buscar avisos por nombre de mascota desde el feed. | Completa | Incluye busqueda en tiempo real y convivencia con filtros del feed. |
+| HU-23 | Como usuario, quiero subir una foto de perfil para que otros usuarios puedan identificarme. | Completa | Incluye picker de imagen, upload a Firebase Storage y persistencia del avatar. |
 
 ---
 
@@ -500,7 +500,7 @@ Puntos a validar manualmente:
 - Creacion, edicion, resolucion y borrado de alertas.
 - Feed con filtros por especie, tipo y radio.
 - Mapa con pines y radio basado en ubicacion actual.
-- Perfil, mis reportes y edicion de perfil.
+- Perfil, mis reportes, foto de perfil y edicion de perfil.
 
 ---
 

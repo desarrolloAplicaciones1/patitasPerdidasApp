@@ -1,5 +1,8 @@
 ﻿package com.uade.huellitas.presentation.profile.edit
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -44,13 +49,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.Urbanist
 
@@ -62,6 +70,11 @@ fun EditProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     var passVisible by remember { mutableStateOf(false) }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.onAvatarSelected(uri?.toString())
+    }
 
     if (uiState is EditProfileUiState.Success) {
         AlertDialog(
@@ -98,11 +111,22 @@ fun EditProfileScreen(
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = HuellitasTeal, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = HuellitasTeal,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Editar perfil", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text(
+                "Editar perfil",
+                fontFamily = Urbanist,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
 
         Column(
@@ -114,21 +138,86 @@ fun EditProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(HuellitasTeal)
-                    .align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
             ) {
-                Text(
-                    text = formState.name.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                    fontFamily = Urbanist,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp,
-                    color = Color.White
-                )
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        if (formState.avatarPreview != null) {
+                            AsyncImage(
+                                model = formState.avatarPreview,
+                                contentDescription = "Foto de perfil",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(92.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(92.dp)
+                                    .clip(CircleShape)
+                                    .background(HuellitasTeal),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = formState.name.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                    fontFamily = Urbanist,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 34.sp,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        Surface(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            shape = CircleShape,
+                            color = HuellitasTeal,
+                            shadowElevation = 4.dp
+                        ) {
+                            Box(
+                                modifier = Modifier.size(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Cambiar foto",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = if (formState.avatarPreview == null) {
+                            "Agregá una foto para que te reconozcan más fácil"
+                        } else {
+                            "Tu foto se verá en tu perfil y en tus reportes"
+                        },
+                        fontFamily = Urbanist,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    TextButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint = HuellitasTeal,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Cambiar foto", fontFamily = Urbanist, color = HuellitasTeal)
+                    }
+                }
             }
 
             if (uiState is EditProfileUiState.Error) {
@@ -141,14 +230,14 @@ fun EditProfileScreen(
                 }
             }
 
-            Text("Email", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            FieldLabel("Email")
             OutlinedTextField(
                 value = formState.email,
                 onValueChange = {},
                 enabled = false,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     disabledBorderColor = Color(0xFFDDDDDD),
                     disabledTextColor = Color(0xFF888888),
@@ -157,68 +246,78 @@ fun EditProfileScreen(
             )
             Text("El email no se puede modificar", fontFamily = Urbanist, fontSize = 11.sp, color = Color(0xFF888888))
 
-            Text("Nombre", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            FieldLabel("Nombre")
             OutlinedTextField(
                 value = formState.name,
                 onValueChange = viewModel::onNameChange,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors()
             )
 
-            Text("Ubicacion", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            FieldLabel("Teléfono")
+            OutlinedTextField(
+                value = formState.phone,
+                onValueChange = viewModel::onPhoneChange,
+                placeholder = { Text("Ej. +54 11 1234-5678", color = Color.Gray, fontFamily = Urbanist) },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors()
+            )
+            Text(
+                "Usaremos este número como contacto visible en tus reportes.",
+                fontFamily = Urbanist,
+                fontSize = 11.sp,
+                color = Color(0xFF888888)
+            )
+
+            FieldLabel("Ubicación")
             OutlinedTextField(
                 value = formState.location,
                 onValueChange = viewModel::onLocationChange,
                 placeholder = { Text("Ej. Palermo, CABA", color = Color.Gray, fontFamily = Urbanist) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors()
             )
 
             HorizontalDivider(color = Color(0xFFEEEEEE))
 
-            Text("Nueva contrasena", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            FieldLabel("Nueva contraseña")
             OutlinedTextField(
                 value = formState.password,
                 onValueChange = viewModel::onPasswordChange,
-                placeholder = { Text("Minimo 6 caracteres", color = Color.Gray, fontFamily = Urbanist) },
+                placeholder = { Text("Mínimo 6 caracteres", color = Color.Gray, fontFamily = Urbanist) },
                 visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passVisible = !passVisible }) {
-                        Icon(if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = Color.Gray)
+                        Icon(
+                            if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = Color.Gray
+                        )
                     }
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors()
             )
 
-            Text("Confirmar contrasena", fontFamily = Urbanist, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+            FieldLabel("Confirmar contraseña")
             OutlinedTextField(
                 value = formState.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChange,
-                placeholder = { Text("Repeti la contrasena", color = Color.Gray, fontFamily = Urbanist) },
+                placeholder = { Text("Repetí la contraseña", color = Color.Gray, fontFamily = Urbanist) },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors()
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -232,15 +331,43 @@ fun EditProfileScreen(
                     .navigationBarsPadding()
                     .height(52.dp),
                 enabled = uiState !is EditProfileUiState.Loading,
-                shape = RoundedCornerShape(3.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
             ) {
                 if (uiState is EditProfileUiState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
                 } else {
-                    Text("Guardar cambios", fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White)
+                    Text(
+                        "Guardar cambios",
+                        fontFamily = Urbanist,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
                 }
             }
         }
     }
 }
+
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        fontFamily = Urbanist,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onBackground
+    )
+}
+
+@Composable
+private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = HuellitasTeal,
+    unfocusedBorderColor = Color(0xFFDDDDDD)
+)
+

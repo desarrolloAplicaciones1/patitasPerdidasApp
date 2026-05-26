@@ -1,9 +1,11 @@
 ﻿package com.uade.huellitas.presentation.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,11 +19,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -29,6 +34,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -47,12 +53,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.uade.huellitas.domain.model.Alert
+import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.User
 import com.uade.huellitas.ui.theme.HuellitasTeal
@@ -62,6 +71,13 @@ import com.uade.huellitas.ui.theme.Urbanist
 private val CardBg = Color(0xFFF5F9F9)
 private val radiusOptions = listOf(1, 3, 5, 10, 20)
 
+private enum class ReportFilter {
+    ACTIVE,
+    RESOLVED,
+    ALL
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit = {},
@@ -72,23 +88,25 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
+    val systemDark = isSystemInDarkTheme()
+    val isDark = if (settings.followSystemTheme) systemDark else settings.darkModeEnabled
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showRadiusDialog by remember { mutableStateOf(false) }
     var tempRadius by remember { mutableIntStateOf(settings.alertRadiusKm) }
-    val isDark = settings.darkModeEnabled
+    var reportFilter by remember { mutableStateOf(ReportFilter.ACTIVE) }
 
-    LaunchedEffect(settings.darkModeEnabled) {
-        ThemeState.isDarkMode = settings.darkModeEnabled
+    LaunchedEffect(isDark) {
+        ThemeState.isDarkMode = isDark
     }
 
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Cerrar sesion", fontFamily = Urbanist, fontWeight = FontWeight.Bold) },
-            text = { Text("Seguro que queres cerrar sesion?", fontFamily = Urbanist) },
+            title = { Text("Cerrar sesión", fontFamily = Urbanist, fontWeight = FontWeight.Bold) },
+            text = { Text("¿Seguro que querés cerrar sesión?", fontFamily = Urbanist) },
             confirmButton = {
                 TextButton(onClick = { showLogoutDialog = false; viewModel.logout(); onLogout() }) {
-                    Text("Cerrar sesion", color = Color.Red, fontFamily = Urbanist)
+                    Text("Cerrar sesión", color = Color.Red, fontFamily = Urbanist)
                 }
             },
             dismissButton = {
@@ -143,7 +161,7 @@ fun ProfileScreen(
                         viewModel.setAlertRadius(tempRadius)
                         showRadiusDialog = false
                     },
-                    shape = RoundedCornerShape(4.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
                 ) {
                     Text("Guardar", fontFamily = Urbanist, color = Color.White)
@@ -155,6 +173,17 @@ fun ProfileScreen(
                 }
             }
         )
+    }
+
+    val visibleAlerts = when (val state = uiState) {
+        is ProfileUiState.Success -> state.userAlerts.filter { alert ->
+            when (reportFilter) {
+                ReportFilter.ACTIVE -> alert.status == AlertStatus.ACTIVE
+                ReportFilter.RESOLVED -> alert.status == AlertStatus.RESOLVED
+                ReportFilter.ALL -> true
+            }
+        }
+        else -> emptyList()
     }
 
     Column(
@@ -209,7 +238,9 @@ fun ProfileScreen(
 
         when (val state = uiState) {
             is ProfileUiState.Success -> {
-                if (state.userAlerts.isEmpty()) {
+                ReportFilterRow(current = reportFilter, darkMode = isDark, onChange = { reportFilter = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                if (visibleAlerts.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -219,14 +250,23 @@ fun ProfileScreen(
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Todavia no publicaste ningun aviso", fontFamily = Urbanist, fontSize = 14.sp, color = Color(0xFF888888))
+                        Text(
+                            when (reportFilter) {
+                                ReportFilter.ACTIVE -> "No tenés reportes activos ahora mismo"
+                                ReportFilter.RESOLVED -> "Todavía no resolviste ningún aviso"
+                                ReportFilter.ALL -> "Todavía no publicaste ningún aviso"
+                            },
+                            fontFamily = Urbanist,
+                            fontSize = 14.sp,
+                            color = Color(0xFF888888)
+                        )
                     }
                 } else {
                     Surface(shape = RoundedCornerShape(12.dp), color = cardBgDynamic, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         Column {
-                            state.userAlerts.forEachIndexed { index, alert ->
+                            visibleAlerts.forEachIndexed { index, alert ->
                                 ReporteItem(alert = alert, darkMode = isDark, onClick = { onNavigateToAlertDetail(alert.id) })
-                                if (index < state.userAlerts.lastIndex) {
+                                if (index < visibleAlerts.lastIndex) {
                                     HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
                                 }
                             }
@@ -254,7 +294,7 @@ fun ProfileScreen(
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE))
         Spacer(modifier = Modifier.height(16.dp))
 
-        SectionTitle("CONFIGURACION", darkMode = isDark)
+        SectionTitle("CONFIGURACIÓN", darkMode = isDark)
         Spacer(modifier = Modifier.height(8.dp))
 
         Surface(shape = RoundedCornerShape(12.dp), color = cardBgDynamic, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -275,35 +315,39 @@ fun ProfileScreen(
 
                 HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
 
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.DarkMode, contentDescription = null, tint = if (isDark) Color.White else Color(0xFF3D3D3D), modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Tema oscuro", fontFamily = Urbanist, fontSize = 15.sp, color = if (isDark) Color.White else Color(0xFF1C1C1C), modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = settings.darkModeEnabled,
-                        onCheckedChange = { viewModel.setDarkMode(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = HuellitasTeal)
-                    )
-                }
+                SettingsSwitchRow(
+                    title = "Seguir tema del sistema",
+                    subtitle = "Usa el modo claro u oscuro de tu dispositivo",
+                    checked = settings.followSystemTheme,
+                    onCheckedChange = viewModel::setFollowSystemTheme,
+                    enabled = true,
+                    darkMode = isDark,
+                    icon = { tint -> Icon(Icons.Default.BrightnessAuto, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
+                )
 
                 HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
 
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.WifiOff, contentDescription = null, tint = if (settings.offlineModeEnabled) HuellitasTeal else Color(0xFF3D3D3D), modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "Modo offline",
-                        fontFamily = Urbanist,
-                        fontSize = 15.sp,
-                        color = if (settings.offlineModeEnabled) HuellitasTeal else if (isDark) Color.White else Color(0xFF1C1C1C),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = settings.offlineModeEnabled,
-                        onCheckedChange = { viewModel.setOfflineMode(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = HuellitasTeal)
-                    )
-                }
+                SettingsSwitchRow(
+                    title = "Tema oscuro",
+                    subtitle = if (settings.followSystemTheme) "Desactivá la opción anterior para elegirlo manualmente" else "Aplicar tema oscuro en la app",
+                    checked = isDark,
+                    onCheckedChange = viewModel::setDarkMode,
+                    enabled = !settings.followSystemTheme,
+                    darkMode = isDark,
+                    icon = { tint -> Icon(Icons.Default.DarkMode, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
+                )
+
+                HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
+
+                SettingsSwitchRow(
+                    title = "Modo offline",
+                    subtitle = "Permite trabajar con los datos cacheados localmente",
+                    checked = settings.offlineModeEnabled,
+                    onCheckedChange = viewModel::setOfflineMode,
+                    enabled = true,
+                    darkMode = isDark,
+                    icon = { tint -> Icon(Icons.Default.WifiOff, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
+                )
             }
         }
 
@@ -320,7 +364,7 @@ fun ProfileScreen(
                     CuentaItem("Editar perfil", darkMode = isDark, onClick = onNavigateToEditProfile)
                     HorizontalDivider(color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE), modifier = Modifier.padding(horizontal = 12.dp))
                 }
-                CuentaItem("Cerrar sesion", isDestructive = true, darkMode = isDark, onClick = { showLogoutDialog = true })
+                CuentaItem("Cerrar sesión", isDestructive = true, darkMode = isDark, onClick = { showLogoutDialog = true })
             }
         }
 
@@ -331,17 +375,113 @@ fun ProfileScreen(
 @Composable
 private fun UserSection(user: User, darkMode: Boolean) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(64.dp).clip(CircleShape).background(HuellitasTeal), contentAlignment = Alignment.Center) {
-            Text(user.name.firstOrNull()?.uppercaseChar()?.toString() ?: "U", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Color.White)
+        if (!user.avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = user.avatarUrl,
+                contentDescription = "Foto de perfil de ${user.name}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Box(modifier = Modifier.size(72.dp).clip(CircleShape).background(HuellitasTeal), contentAlignment = Alignment.Center) {
+                Text(user.name.firstOrNull()?.uppercaseChar()?.toString() ?: "U", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White)
+            }
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(user.name, fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (darkMode) Color.White else Color(0xFF1C1C1C))
             Text(user.email, fontFamily = Urbanist, fontSize = 14.sp, color = Color(0xFF888888))
+            if (!user.phone.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Phone, contentDescription = null, tint = HuellitasTeal, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(user.phone, fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
+                }
+            }
             if (!user.location.isNullOrBlank()) {
                 Text(user.location, fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
             }
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReportFilterRow(
+    current: ReportFilter,
+    darkMode: Boolean,
+    onChange: (ReportFilter) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ReportFilter.entries.forEach { filter ->
+            val selected = filter == current
+            Surface(
+                onClick = { onChange(filter) },
+                shape = RoundedCornerShape(999.dp),
+                color = if (selected) HuellitasTeal else if (darkMode) Color(0xFF232F2F) else Color(0xFFF0F0F0)
+            ) {
+                Text(
+                    text = when (filter) {
+                        ReportFilter.ACTIVE -> "Activos"
+                        ReportFilter.RESOLVED -> "Resueltos"
+                        ReportFilter.ALL -> "Todos"
+                    },
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    fontFamily = Urbanist,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 13.sp,
+                    color = if (selected) Color.White else if (darkMode) Color.White else Color(0xFF3D3D3D)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean,
+    darkMode: Boolean,
+    icon: @Composable (Color) -> Unit
+) {
+    val iconTint = if (enabled) {
+        if (darkMode) Color.White else Color(0xFF3D3D3D)
+    } else {
+        Color(0xFF888888)
+    }
+    val titleColor = if (enabled) {
+        if (darkMode) Color.White else Color(0xFF1C1C1C)
+    } else {
+        Color(0xFF888888)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        icon(iconTint)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontFamily = Urbanist, fontSize = 15.sp, color = titleColor)
+            Text(subtitle, fontFamily = Urbanist, fontSize = 12.sp, color = Color(0xFF888888))
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = HuellitasTeal)
+        )
     }
 }
 
@@ -383,12 +523,24 @@ private fun ReporteItem(alert: Alert, darkMode: Boolean, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Color.Transparent) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFDDEEEE)), contentAlignment = Alignment.Center) {
-                Text("Pet", fontSize = 12.sp)
+                Text(alert.petName.take(1).uppercase(), fontSize = 12.sp, fontFamily = Urbanist, fontWeight = FontWeight.Bold, color = HuellitasTeal)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(alert.petName, fontFamily = Urbanist, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = if (darkMode) Color.White else Color(0xFF1C1C1C))
                 Text("${if (alert.type == AlertType.LOST) "Perdido" else "Encontrado"} - ${timeAgo(alert.createdAt)}", fontFamily = Urbanist, fontSize = 13.sp, color = Color(0xFF888888))
+                if (alert.status == AlertStatus.RESOLVED) {
+                    Surface(shape = RoundedCornerShape(999.dp), color = HuellitasTeal.copy(alpha = 0.12f)) {
+                        Text(
+                            text = "Resuelto",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            fontFamily = Urbanist,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = HuellitasTeal
+                        )
+                    }
+                }
             }
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF888888), modifier = Modifier.size(18.dp))
         }
@@ -432,6 +584,7 @@ private fun timeAgo(timestamp: Long): String {
     val hours = diff / 3_600_000
     val days = diff / 86_400_000
     return when {
+        mins < 1 -> "Recién publicado"
         mins < 60 -> "Hace ${mins}min"
         hours < 24 -> "Hace ${hours}h"
         else -> "Hace ${days}d"

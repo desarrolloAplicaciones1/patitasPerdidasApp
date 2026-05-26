@@ -1,5 +1,6 @@
 ﻿package com.uade.huellitas.data.remote
 
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
@@ -29,10 +30,19 @@ class FirebaseAuthDataSource {
     }
 
     suspend fun updateDisplayName(displayName: String) {
+        updateProfile(displayName = displayName, photoUrl = auth.currentUser?.photoUrl?.toString())
+    }
+
+    suspend fun updateProfile(displayName: String, photoUrl: String?) {
         val currentUser = auth.currentUser ?: error("No hay usuario autenticado")
-        val request = UserProfileChangeRequest.Builder()
+        val requestBuilder = UserProfileChangeRequest.Builder()
             .setDisplayName(displayName)
-            .build()
+
+        photoUrl
+            ?.takeIf { it.isNotBlank() }
+            ?.let { requestBuilder.setPhotoUri(Uri.parse(it)) }
+
+        val request = requestBuilder.build()
         currentUser.updateProfile(request).await()
     }
 
@@ -58,3 +68,4 @@ data class AuthUserProfile(
     val phoneNumber: String?,
     val photoUrl: String?
 )
+

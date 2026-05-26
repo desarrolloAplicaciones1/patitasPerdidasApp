@@ -17,6 +17,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
     private val getCurrentUserUseCase = appContainer.getCurrentUserUseCase
     private val updateUserProfileUseCase = appContainer.updateUserProfileUseCase
     private val changePasswordUseCase = appContainer.changePasswordUseCase
+    private val uploadProfilePhotoUseCase = appContainer.uploadProfilePhotoUseCase
 
     private val _uiState = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
@@ -36,7 +37,9 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                     _formState.value = EditProfileFormState(
                         name = user.name,
                         email = user.email,
-                        location = user.location.orEmpty()
+                        phone = user.phone.orEmpty(),
+                        location = user.location.orEmpty(),
+                        avatarUrl = user.avatarUrl
                     )
                     _uiState.value = EditProfileUiState.Editing
                 }
@@ -48,8 +51,16 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         _formState.value = _formState.value.copy(name = value)
     }
 
+    fun onPhoneChange(value: String) {
+        _formState.value = _formState.value.copy(phone = value)
+    }
+
     fun onLocationChange(value: String) {
         _formState.value = _formState.value.copy(location = value)
+    }
+
+    fun onAvatarSelected(uri: String?) {
+        _formState.value = _formState.value.copy(selectedAvatarUri = uri)
     }
 
     fun onPasswordChange(value: String) {
@@ -74,11 +85,11 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         }
         if (form.password.isNotBlank()) {
             if (form.password.length < 6) {
-                _uiState.value = EditProfileUiState.Error("La contrasena debe tener al menos 6 caracteres")
+                _uiState.value = EditProfileUiState.Error("La contraseña debe tener al menos 6 caracteres")
                 return
             }
             if (form.password != form.confirmPassword) {
-                _uiState.value = EditProfileUiState.Error("Las contrasenas no coinciden")
+                _uiState.value = EditProfileUiState.Error("Las contraseñas no coinciden")
                 return
             }
         }
@@ -86,16 +97,33 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 _uiState.value = EditProfileUiState.Loading
+
+                val uploadedAvatarUrl = form.selectedAvatarUri
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { selectedUri -> uploadProfilePhotoUseCase(selectedUri) }
+                    ?: user.avatarUrl
+
                 val updatedUser = user.copy(
                     name = form.name.trim(),
-                    location = form.location.trim().ifBlank { null }
+                    phone = form.phone.trim().ifBlank { null },
+                    location = form.location.trim().ifBlank { null },
+                    avatarUrl = uploadedAvatarUrl
                 )
+
                 updateUserProfileUseCase(updatedUser)
                 currentUser = updatedUser
+
                 if (form.password.isNotBlank()) {
                     changePasswordUseCase(form.password)
                 }
-                _formState.value = _formState.value.copy(password = "", confirmPassword = "")
+
+                _formState.value = EditProfileFormState(
+                    name = updatedUser.name,
+                    email = updatedUser.email,
+                    phone = updatedUser.phone.orEmpty(),
+                    location = updatedUser.location.orEmpty(),
+                    avatarUrl = updatedUser.avatarUrl
+                )
                 _uiState.value = EditProfileUiState.Success
             } catch (e: Exception) {
                 _uiState.value = EditProfileUiState.Error(e.message ?: "Error al guardar el perfil")
@@ -107,3 +135,4 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.value = EditProfileUiState.Editing
     }
 }
+

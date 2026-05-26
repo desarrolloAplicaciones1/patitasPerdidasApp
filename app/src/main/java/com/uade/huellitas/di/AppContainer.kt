@@ -40,6 +40,7 @@ import com.uade.huellitas.domain.usecase.location.GeocodeAddressUseCase
 import com.uade.huellitas.domain.usecase.location.GetCurrentDeviceLocationUseCase
 import com.uade.huellitas.domain.usecase.location.ResolveReferenceLocationUseCase
 import com.uade.huellitas.domain.usecase.media.UploadAlertPhotoUseCase
+import com.uade.huellitas.domain.usecase.media.UploadProfilePhotoUseCase
 import com.uade.huellitas.domain.usecase.pet.DeletePetUseCase
 import com.uade.huellitas.domain.usecase.pet.GetMyPetsUseCase
 import com.uade.huellitas.domain.usecase.pet.GetPetByIdUseCase
@@ -48,6 +49,7 @@ import com.uade.huellitas.domain.usecase.pet.UpdatePetUseCase
 import com.uade.huellitas.domain.usecase.settings.GetAppSettingsUseCase
 import com.uade.huellitas.domain.usecase.settings.SetAlertRadiusUseCase
 import com.uade.huellitas.domain.usecase.settings.SetDarkModeUseCase
+import com.uade.huellitas.domain.usecase.settings.SetFollowSystemThemeUseCase
 import com.uade.huellitas.domain.usecase.settings.SetOfflineModeUseCase
 import com.uade.huellitas.domain.usecase.onboarding.CompleteOnboardingUseCase
 import com.uade.huellitas.domain.usecase.user.ChangePasswordUseCase
@@ -116,6 +118,7 @@ class AppContainer(context: Context) {
     val deletePetUseCase = DeletePetUseCase(petRepository)
 
     val getAppSettingsUseCase = GetAppSettingsUseCase(settingsRepository)
+    val setFollowSystemThemeUseCase = SetFollowSystemThemeUseCase(settingsRepository)
     val setDarkModeUseCase = SetDarkModeUseCase(settingsRepository)
     val setAlertRadiusUseCase = SetAlertRadiusUseCase(settingsRepository)
     val setOfflineModeUseCase = SetOfflineModeUseCase(settingsRepository)
@@ -129,6 +132,7 @@ class AppContainer(context: Context) {
     )
     val filterAlertsByRadiusUseCase = FilterAlertsByRadiusUseCase(calculateDistanceMetersUseCase)
     val uploadAlertPhotoUseCase = UploadAlertPhotoUseCase(photoStorageRepository)
+    val uploadProfilePhotoUseCase = UploadProfilePhotoUseCase(photoStorageRepository)
 
     val completeOnboardingUseCase = CompleteOnboardingUseCase(onboardingPreferences)
     val onboardingViewModel = OnboardingViewModel(completeOnboardingUseCase)

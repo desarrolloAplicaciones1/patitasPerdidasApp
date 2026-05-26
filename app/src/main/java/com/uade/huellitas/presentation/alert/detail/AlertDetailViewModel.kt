@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.HuellitasApplication
+import com.uade.huellitas.domain.model.Location
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val updateAlertUseCase = appContainer.updateAlertUseCase
     private val resolveAlertUseCase = appContainer.resolveAlertUseCase
     private val deleteAlertUseCase = appContainer.deleteAlertUseCase
+    private val geocodeAddressUseCase = appContainer.geocodeAddressUseCase
 
     private val _uiState = MutableStateFlow<AlertDetailUiState>(AlertDetailUiState.Loading)
     val uiState: StateFlow<AlertDetailUiState> = _uiState.asStateFlow()
@@ -50,14 +52,32 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun updateAlert(petName: String, description: String, color: String) {
+    fun updateAlert(
+        petName: String,
+        breed: String,
+        color: String,
+        size: String,
+        address: String,
+        contactPhone: String,
+        description: String,
+        hasCollar: Boolean?
+    ) {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
         viewModelScope.launch {
             try {
+                val resolvedLocation = resolveLocation(
+                    currentLocation = currentState.alert.location,
+                    editedAddress = address
+                )
                 val updated = currentState.alert.copy(
                     petName = petName.trim(),
+                    breed = breed.trim().ifBlank { null },
                     description = description.trim(),
                     color = color.trim().ifBlank { null },
+                    size = size.trim().ifBlank { null },
+                    location = resolvedLocation,
+                    contactPhone = contactPhone.trim().ifBlank { null },
+                    hasCollar = hasCollar,
                     updatedAt = System.currentTimeMillis()
                 )
                 updateAlertUseCase(updated)
@@ -78,5 +98,28 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al eliminar aviso")
             }
         }
+    }
+
+    private suspend fun resolveLocation(currentLocation: Location, editedAddress: String): Location {
+        val trimmedAddress = editedAddress.trim()
+        val currentAddress = currentLocation.address.orEmpty().trim()
+
+        if (trimmedAddress.isBlank() || trimmedAddress.equals(currentAddress, ignoreCase = true)) {
+            return currentLocation.copy(address = currentLocation.address ?: trimmedAddress.ifBlank { null })
+        }
+
+        return geocodeAddressUseCase(buildGeocodingQuery(trimmedAddress, currentAddress))
+            ?: currentLocation.copy(address = trimmedAddress)
+    }
+
+    private fun buildGeocodingQuery(address: String, currentAddress: String): String {
+        if (address.contains(",")) return address
+        return listOf(address, currentAddress.ifBlank { DEFAULT_LOCATION_HINT })
+            .filter { it.isNotBlank() }
+            .joinToString(", ")
+    }
+
+    private companion object {
+        private const val DEFAULT_LOCATION_HINT = "CABA, Argentina"
     }
 }

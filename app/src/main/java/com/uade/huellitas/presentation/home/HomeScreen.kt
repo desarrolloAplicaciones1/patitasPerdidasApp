@@ -1,6 +1,8 @@
 ﻿package com.uade.huellitas.presentation.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +32,7 @@ import com.uade.huellitas.domain.model.Alert
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.PetType
 import com.uade.huellitas.presentation.location.RequestLocationPermissionEffect
+import com.uade.huellitas.presentation.shared.AlertCard as SharedAlertCard
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.HuellitasTealSurface
 import com.uade.huellitas.ui.theme.StatusFound
@@ -40,7 +43,7 @@ import com.uade.huellitas.ui.theme.Urbanist
 private val FooterColor = Color(0xFFE8F7F6)
 private val radiusOptions = listOf(1, 3, 5, 10, 20)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (alertId: String) -> Unit,
@@ -54,6 +57,9 @@ fun HomeScreen(
     val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
     val filterState by viewModel.filterState.collectAsStateWithLifecycle()
     val currentUserName = (uiState as? HomeUiState.Success)?.currentUserName
+    val hasActiveAdvancedFilters = filterState.petType != null ||
+        filterState.alertType != null ||
+        filterState.radiusKm != HomeFilterState().radiusKm
     var showFilterDialog by remember { mutableStateOf(false) }
     var showReportSheet  by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -71,7 +77,7 @@ fun HomeScreen(
                 viewModel.setFilter(petType = petType, alertType = alertType, radiusKm = radiusKm)
                 showFilterDialog = false
             },
-            onClearFilter = { viewModel.clearFilter(); showFilterDialog = false },
+            onClearFilter = { viewModel.clearAdvancedFilters(); showFilterDialog = false },
             onDismiss = { showFilterDialog = false }
         )
     }
@@ -147,7 +153,19 @@ fun HomeScreen(
                 userName = currentUserName,
                 onFilterClick = { showFilterDialog = true }
             )
+            SearchSection(
+                query = filterState.query,
+                onQueryChange = viewModel::updateSearchQuery,
+                onClearQuery = { viewModel.updateSearchQuery("") }
+            )
             CreateAlertBanner(onClick = { showReportSheet = true })
+            FeedSummarySection(
+                filterState = filterState,
+                alertsCount = (uiState as? HomeUiState.Success)?.alerts?.size ?: 0,
+                hasActiveAdvancedFilters = hasActiveAdvancedFilters,
+                onOpenFilters = { showFilterDialog = true },
+                onClearAdvancedFilters = viewModel::clearAdvancedFilters
+            )
 
             when (val state = uiState) {
                 is HomeUiState.Loading -> {
@@ -162,7 +180,12 @@ fun HomeScreen(
                 }
                 is HomeUiState.Success -> {
                     if (state.alerts.isEmpty()) {
-                        EmptyAlertsState(modifier = Modifier.fillMaxSize())
+                        EmptyAlertsState(
+                            query = filterState.query,
+                            hasActiveFilters = hasActiveAdvancedFilters,
+                            modifier = Modifier.fillMaxSize(),
+                            onClearFilters = viewModel::clearAllFilters
+                        )
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -170,7 +193,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(state.alerts, key = { it.id }) { alert ->
-                                AlertCard(alert = alert, onClick = { onNavigateToDetail(alert.id) })
+                                SharedAlertCard(alert = alert, onClick = { onNavigateToDetail(alert.id) })
                             }
                         }
                     }
@@ -217,6 +240,136 @@ private fun HomeHeader(userName: String?, onFilterClick: () -> Unit) {
             Icon(Icons.Default.Notifications, contentDescription = "Notificaciones",
                 tint = Color.Black, modifier = Modifier.size(20.dp))
         }
+    }
+}
+
+@Composable
+private fun SearchSection(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        singleLine = true,
+        shape = RoundedCornerShape(16.dp),
+        placeholder = {
+            Text(
+                "Buscar por nombre de mascota",
+                fontFamily = Urbanist,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingIcon = {
+            if (query.isNotBlank()) {
+                IconButton(onClick = onClearQuery) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Limpiar búsqueda",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = HuellitasTeal,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+        )
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FeedSummarySection(
+    filterState: HomeFilterState,
+    alertsCount: Int,
+    hasActiveAdvancedFilters: Boolean,
+    onOpenFilters: () -> Unit,
+    onClearAdvancedFilters: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (alertsCount == 1) "1 aviso visible" else "$alertsCount avisos visibles",
+                fontFamily = Urbanist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            TextButton(onClick = onOpenFilters) {
+                Text("Ajustar filtros", fontFamily = Urbanist, color = HuellitasTeal)
+            }
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (filterState.query.isNotBlank()) {
+                ActiveFilterChip("Nombre: ${filterState.query}")
+            }
+            if (filterState.alertType != null) {
+                ActiveFilterChip(
+                    if (filterState.alertType == AlertType.LOST) "Perdidos" else "Encontrados"
+                )
+            }
+            if (filterState.petType != null) {
+                ActiveFilterChip(
+                    if (filterState.petType == PetType.DOG) "Perros" else "Gatos"
+                )
+            }
+            if (filterState.radiusKm != HomeFilterState().radiusKm) {
+                ActiveFilterChip("Radio: ${filterState.radiusKm} km")
+            }
+        }
+
+        if (hasActiveAdvancedFilters) {
+            TextButton(
+                onClick = onClearAdvancedFilters,
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Limpiar filtros avanzados", fontFamily = Urbanist, color = HuellitasTeal)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActiveFilterChip(label: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = HuellitasTeal.copy(alpha = 0.12f)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            fontFamily = Urbanist,
+            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            color = HuellitasTeal
+        )
     }
 }
 
@@ -347,68 +500,46 @@ private fun CreateAlertBanner(onClick: () -> Unit) {
     }
 }
 @Composable
-private fun AlertCard(alert: Alert, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Column {
-            Box(modifier = Modifier.fillMaxWidth().height(180.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center) {
-                if (alert.photoUrls.isNotEmpty()) {
-                    AsyncImage(model = alert.photoUrls.first(),
-                        contentDescription = "Foto de ${alert.petName}",
-                        contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                } else {
-                    AsyncImage(
-                        model = "https://images.dog.ceo/breeds/retriever-golden/n02099601_3004.jpg",
-                        contentDescription = "Sin foto",
-                        contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                }
-            }
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Box(modifier = Modifier.clip(RoundedCornerShape(4.dp))
-                    .background(if (alert.type == AlertType.LOST) StatusLost else StatusFound)
-                    .padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Text(text = if (alert.type == AlertType.LOST) "PERDIDO" else "ENCONTRADO",
-                        color = Color.White, fontFamily = Urbanist, fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp, letterSpacing = 0.5.sp)
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(text = alert.petName, fontFamily = Urbanist, fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-                if (!alert.color.isNullOrBlank()) {
-                    Text(text = alert.color!!, fontFamily = Urbanist,
-                        fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (!alert.location.address.isNullOrBlank()) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null,
-                            tint = HuellitasTeal, modifier = Modifier.size(12.dp))
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(text = alert.location.address!!, fontFamily = Urbanist,
-                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                    Text(text = timeAgo(alert.createdAt), fontFamily = Urbanist,
-                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyAlertsState(modifier: Modifier = Modifier) {
+private fun EmptyAlertsState(
+    query: String,
+    hasActiveFilters: Boolean,
+    modifier: Modifier = Modifier,
+    onClearFilters: () -> Unit
+) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-            Text("🔍", fontSize = 64.sp)
+            Text("Sin resultados", fontFamily = Urbanist, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Spacer(modifier = Modifier.height(16.dp))
-            Text("No encontramos avisos cercanos", fontFamily = Urbanist,
-                fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = when {
+                    query.isNotBlank() -> "No encontramos avisos para \"$query\"."
+                    hasActiveFilters -> "No encontramos avisos con los filtros actuales."
+                    else -> "Todavía no hay avisos cercanos para mostrar."
+                },
+                fontFamily = Urbanist,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Probá ampliar el radio, cambiar filtros o publicar un nuevo reporte.",
+                fontFamily = Urbanist,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            if (query.isNotBlank() || hasActiveFilters) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = onClearFilters,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
+                ) {
+                    Text("Limpiar filtros", fontFamily = Urbanist, color = Color.White)
+                }
+            }
         }
     }
 }
@@ -454,17 +585,5 @@ private fun HomeBottomBar(
                     tint = iconColor, modifier = Modifier.size(26.dp))
             }
         }
-    }
-}
-
-private fun timeAgo(timestamp: Long): String {
-    val diff  = System.currentTimeMillis() - timestamp
-    val mins  = diff / 60_000
-    val hours = diff / 3_600_000
-    val days  = diff / 86_400_000
-    return when {
-        mins  < 60 -> "Hace ${mins}min"
-        hours < 24 -> "Hace ${hours}h"
-        else       -> "Hace ${days}d"
     }
 }
