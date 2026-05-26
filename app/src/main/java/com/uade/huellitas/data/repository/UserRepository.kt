@@ -55,13 +55,13 @@ class UserRepository(
     override suspend fun saveUserProfile(user: User) {
         remoteDataSource.saveUser(user)
         userDao.insert(user.toEntity())
-        authDataSource.updateDisplayName(user.name)
+        authDataSource.updateProfile(displayName = user.name, photoUrl = user.avatarUrl)
     }
 
     override suspend fun updateUserProfile(user: User) {
         remoteDataSource.saveUser(user)
         userDao.insert(user.toEntity())
-        authDataSource.updateDisplayName(user.name)
+        authDataSource.updateProfile(displayName = user.name, photoUrl = user.avatarUrl)
     }
 
     override suspend fun updatePassword(newPassword: String) =

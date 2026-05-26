@@ -84,16 +84,21 @@ private fun AlertDetailContent(
     alert: Alert,
     isOwner: Boolean,
     onBack: () -> Unit,
-    onUpdate: (String, String, String) -> Unit,
+    onUpdate: (String, String, String, String, String, String, String, Boolean?) -> Unit,
     onResolve: () -> Unit,
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
     val isResolved = alert.status == AlertStatus.RESOLVED
     var isEditing         by remember { mutableStateOf(false) }
-    var editName          by remember { mutableStateOf(alert.petName) }
-    var editDescription   by remember { mutableStateOf(alert.description) }
-    var editColor         by remember { mutableStateOf(alert.color ?: "") }
+    var editName          by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.petName) }
+    var editBreed         by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.breed ?: "") }
+    var editDescription   by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.description) }
+    var editColor         by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.color ?: "") }
+    var editSize          by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.size ?: "") }
+    var editAddress       by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.location.address.orEmpty()) }
+    var editContactPhone  by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.contactPhone.orEmpty()) }
+    var editHasCollar     by remember(alert.id, alert.updatedAt) { mutableStateOf(alert.hasCollar) }
     var showResolveDialog by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
 
@@ -265,8 +270,13 @@ private fun AlertDetailContent(
                         IconButton(onClick = {
                             if (isEditing) {
                                 editName = alert.petName
+                                editBreed = alert.breed ?: ""
                                 editDescription = alert.description
                                 editColor = alert.color ?: ""
+                                editSize = alert.size ?: ""
+                                editAddress = alert.location.address.orEmpty()
+                                editContactPhone = alert.contactPhone.orEmpty()
+                                editHasCollar = alert.hasCollar
                                 isEditing = false
                             } else {
                                 isEditing = true
@@ -341,7 +351,36 @@ private fun AlertDetailContent(
                                 )
                             }
                         }
-                        DetailCell("COLLAR", "-", modifier = Modifier.weight(1f))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("COLLAR", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp, color = HuellitasTeal, letterSpacing = 0.8.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            if (isEditing) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SelectablePill(
+                                        label = "Sí",
+                                        selected = editHasCollar == true,
+                                        onClick = { editHasCollar = true }
+                                    )
+                                    SelectablePill(
+                                        label = "No",
+                                        selected = editHasCollar == false,
+                                        onClick = { editHasCollar = false }
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = when (editHasCollar) {
+                                        true -> "Sí"
+                                        false -> "No"
+                                        null -> "-"
+                                    },
+                                    fontFamily = Urbanist,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
@@ -360,6 +399,107 @@ private fun AlertDetailContent(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("RAZA", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp, color = HuellitasTeal, letterSpacing = 0.8.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            if (isEditing) {
+                                BasicInlineField(
+                                    value = editBreed,
+                                    onValueChange = { editBreed = it },
+                                    placeholder = "Ej. Mestizo"
+                                )
+                            } else {
+                                Text(
+                                    text = editBreed.ifBlank { "-" },
+                                    fontFamily = Urbanist,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("TAMAÑO", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp, color = HuellitasTeal, letterSpacing = 0.8.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            if (isEditing) {
+                                BasicInlineField(
+                                    value = editSize,
+                                    onValueChange = { editSize = it },
+                                    placeholder = "Ej. Mediano"
+                                )
+                            } else {
+                                Text(
+                                    text = editSize.ifBlank { "-" },
+                                    fontFamily = Urbanist,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "CONTACTO Y ZONA",
+                    fontFamily = Urbanist,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.drawBehind {
+                        val sw = 2.dp.toPx()
+                        drawLine(HuellitasTeal, Offset(0f, this.size.height),
+                            Offset(this.size.width, this.size.height), sw)
+                    }
+                )
+                if (isEditing) {
+                    OutlinedTextField(
+                        value = editAddress,
+                        onValueChange = { editAddress = it },
+                        placeholder = {
+                            Text("Ej. Palermo, CABA",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = Urbanist)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = HuellitasTeal,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                    OutlinedTextField(
+                        value = editContactPhone,
+                        onValueChange = { editContactPhone = it },
+                        placeholder = {
+                            Text("Ej. +54 11 1234-5678",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = Urbanist)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = HuellitasTeal,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                } else {
+                    DetailInfoRow(
+                        label = "Ubicación",
+                        value = alert.location.address ?: "Sin ubicación cargada"
+                    )
+                    DetailInfoRow(
+                        label = "Teléfono",
+                        value = alert.contactPhone ?: "Sin teléfono de contacto"
+                    )
                 }
             }
 
@@ -411,7 +551,16 @@ private fun AlertDetailContent(
             if (isEditing) {
                 Button(
                     onClick = {
-                        onUpdate(editName, editDescription, editColor)
+                        onUpdate(
+                            editName,
+                            editBreed,
+                            editColor,
+                            editSize,
+                            editAddress,
+                            editContactPhone,
+                            editDescription,
+                            editHasCollar
+                        )
                         isEditing = false
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -523,6 +672,48 @@ private fun BasicInlineField(
                 color = MaterialTheme.colorScheme.onBackground
             ),
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun SelectablePill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) HuellitasTeal else MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            fontFamily = Urbanist,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = 13.sp,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DetailInfoRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label.uppercase(),
+            fontFamily = Urbanist,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            color = HuellitasTeal,
+            letterSpacing = 0.8.sp
+        )
+        Text(
+            text = value,
+            fontFamily = Urbanist,
+            fontSize = 15.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

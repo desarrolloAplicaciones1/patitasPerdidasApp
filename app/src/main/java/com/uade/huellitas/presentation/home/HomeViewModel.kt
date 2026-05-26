@@ -7,6 +7,7 @@ import com.uade.huellitas.HuellitasApplication
 import com.uade.huellitas.domain.model.ReferenceLocationSource
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.PetType
+import java.text.Normalizer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.mapLatest
@@ -40,9 +41,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         Triple(alerts, filter, user)
     }
         .mapLatest { (alerts, filter, user) ->
+            val normalizedQuery = filter.query.normalizedForSearch()
             val alertsByType = alerts.filter { alert ->
                 (filter.petType == null || alert.petType == filter.petType) &&
-                    (filter.alertType == null || alert.type == filter.alertType)
+                    (filter.alertType == null || alert.type == filter.alertType) &&
+                    (
+                        normalizedQuery.isBlank() ||
+                            alert.petName.normalizedForSearch().contains(normalizedQuery)
+                        )
             }
 
             val referenceLocation = resolveReferenceLocationUseCase(user?.location)
@@ -68,11 +74,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = HomeUiState.Loading
         )
 
-    fun setFilter(petType: PetType? = null, alertType: AlertType? = null, radiusKm: Int = 10) {
-        _filterState.value = HomeFilterState(petType, alertType, radiusKm)
+    fun updateSearchQuery(query: String) {
+        _filterState.update { current -> current.copy(query = query) }
     }
 
-    fun clearFilter() {
+    fun setFilter(petType: PetType? = null, alertType: AlertType? = null, radiusKm: Int = 10) {
+        _filterState.update { current ->
+            current.copy(
+                petType = petType,
+                alertType = alertType,
+                radiusKm = radiusKm
+            )
+        }
+    }
+
+    fun clearAdvancedFilters() {
+        _filterState.update { current ->
+            current.copy(
+                petType = null,
+                alertType = null,
+                radiusKm = HomeFilterState().radiusKm
+            )
+        }
+    }
+
+    fun clearAllFilters() {
         _filterState.value = HomeFilterState()
     }
 
@@ -80,3 +106,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _locationRefreshTrigger.update { current -> current + 1 }
     }
 }
+
+private fun String.normalizedForSearch(): String = Normalizer
+    .normalize(trim(), Normalizer.Form.NFD)
+    .replace("\\p{Mn}+".toRegex(), "")
+    .lowercase()
