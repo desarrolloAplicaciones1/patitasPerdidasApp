@@ -25,16 +25,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.uade.huellitas.domain.model.Alert
+import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.StatusFound
 import com.uade.huellitas.ui.theme.StatusLost
 import com.uade.huellitas.ui.theme.Urbanist
-import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun AlertCard(alert: Alert, onClick: () -> Unit) {
@@ -71,20 +72,41 @@ fun AlertCard(alert: Alert, onClick: () -> Unit) {
             }
 
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(if (alert.type == AlertType.LOST) StatusLost else StatusFound)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = if (alert.type == AlertType.LOST) "PERDIDO" else "ENCONTRADO",
-                        color = Color.White,
-                        fontFamily = Urbanist,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.5.sp
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (alert.type == AlertType.LOST) StatusLost else StatusFound)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = if (alert.type == AlertType.LOST) "PERDIDO" else "ENCONTRADO",
+                            color = Color.White,
+                            fontFamily = Urbanist,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    if (alert.status == AlertStatus.RESOLVED) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFE8F7F6))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "RESUELTO",
+                                color = HuellitasTeal,
+                                fontFamily = Urbanist,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -124,7 +146,7 @@ fun AlertCard(alert: Alert, onClick: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            " · ",
+                            text = " - ",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )

@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.uade.huellitas.domain.model.Alert
+import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.PetType
 import com.uade.huellitas.ui.theme.HuellitasTeal
@@ -88,6 +89,7 @@ private fun AlertDetailContent(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
+    val isResolved = alert.status == AlertStatus.RESOLVED
     var isEditing         by remember { mutableStateOf(false) }
     var editName          by remember { mutableStateOf(alert.petName) }
     var editDescription   by remember { mutableStateOf(alert.description) }
@@ -95,7 +97,7 @@ private fun AlertDetailContent(
     var showResolveDialog by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
 
-    if (showResolveDialog) {
+    if (!isResolved && showResolveDialog) {
         AlertDialog(
             onDismissRequest = { showResolveDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -250,7 +252,7 @@ private fun AlertDetailContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                if (isOwner) {
+                if (isOwner && !isResolved) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
@@ -354,7 +356,7 @@ private fun AlertDetailContent(
                         )
                         DetailCell(
                             "ESTADO",
-                            if (alert.type == AlertType.LOST) "Perdido" else "Encontrado",
+                            if (isResolved) "Resuelto" else "Activo",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -448,14 +450,37 @@ private fun AlertDetailContent(
 
                 // Resuelto / Eliminar — solo para el dueño del aviso
                 if (isOwner) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { showResolveDialog = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(4.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal)
-                    ) {
-                        Text("Resuelto", fontFamily = Urbanist,
-                            fontWeight = FontWeight.Normal, color = HuellitasTeal)
+                    if (isResolved) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFE8F7F6),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal.copy(alpha = 0.5f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Ya resuelto",
+                                    fontFamily = Urbanist,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = HuellitasTeal
+                                )
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showResolveDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal)
+                        ) {
+                            Text("Resuelto", fontFamily = Urbanist,
+                                fontWeight = FontWeight.Normal, color = HuellitasTeal)
+                        }
                     }
                     OutlinedButton(
                         onClick = { showDeleteDialog = true },
