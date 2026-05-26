@@ -140,5 +140,5 @@ class AppContainer(context: Context) {
     val onboardingViewModel = OnboardingViewModel(completeOnboardingUseCase)
 
     val myAlertsViewModel = MyAlertsViewModel(getMyAlertsUseCase)
-    val myPetsViewModel = MyPetsViewModel(getMyPetsUseCase, getCurrentUserIdUseCase)
+    val myPetsViewModel = MyPetsViewModel(getMyPetsUseCase)
 }

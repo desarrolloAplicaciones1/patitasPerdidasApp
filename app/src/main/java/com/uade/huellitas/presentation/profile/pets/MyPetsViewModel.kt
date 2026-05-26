@@ -2,7 +2,6 @@ package com.uade.huellitas.presentation.profile.pets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.uade.huellitas.domain.usecase.auth.GetCurrentUserIdUseCase
 import com.uade.huellitas.domain.usecase.pet.GetMyPetsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,8 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class MyPetsViewModel(
-    private val getMyPetsUseCase: GetMyPetsUseCase,
-    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase
+    private val getMyPetsUseCase: GetMyPetsUseCase
 ) : ViewModel() {
 
     private val _retryTrigger = MutableStateFlow(0)
