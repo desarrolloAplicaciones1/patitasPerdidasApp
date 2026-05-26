@@ -2,6 +2,7 @@
 
 import android.content.Context
 import com.uade.huellitas.data.local.AppDatabase
+import com.uade.huellitas.data.local.NetworkMonitor
 import com.uade.huellitas.data.local.OnboardingPreferences
 import com.uade.huellitas.data.remote.FirebaseAuthDataSource
 import com.uade.huellitas.data.remote.FirestoreAlertDataSource
@@ -64,6 +65,7 @@ class AppContainer(context: Context) {
     private val database = AppDatabase.getInstance(context)
 
     val onboardingPreferences = OnboardingPreferences(context)
+    val networkMonitor = NetworkMonitor(context)
 
     private val authDataSource = FirebaseAuthDataSource()
     private val firestoreAlertDataSource = FirestoreAlertDataSource()

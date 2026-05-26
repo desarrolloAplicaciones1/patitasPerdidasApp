@@ -1,5 +1,8 @@
 ﻿package com.uade.huellitas.presentation.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,6 +60,7 @@ fun HomeScreen(
 ) {
     val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
     val filterState by viewModel.filterState.collectAsStateWithLifecycle()
+    val isOnline    by viewModel.isOnline.collectAsStateWithLifecycle()
     val currentUserName = (uiState as? HomeUiState.Success)?.currentUserName
     val hasActiveAdvancedFilters = filterState.petType != null ||
         filterState.alertType != null ||
@@ -159,6 +164,13 @@ fun HomeScreen(
                 onClearQuery = { viewModel.updateSearchQuery("") }
             )
             CreateAlertBanner(onClick = { showReportSheet = true })
+            AnimatedVisibility(
+                visible = !isOnline,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                OfflineBanner()
+            }
             FeedSummarySection(
                 filterState = filterState,
                 alertsCount = (uiState as? HomeUiState.Success)?.alerts?.size ?: 0,
@@ -499,6 +511,36 @@ private fun CreateAlertBanner(onClick: () -> Unit) {
         }
     }
 }
+@Composable
+private fun OfflineBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.errorContainer
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Rounded.WifiOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Sin conexión · Mostrando datos guardados",
+                fontFamily = Urbanist,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
 @Composable
 private fun EmptyAlertsState(
     query: String,
