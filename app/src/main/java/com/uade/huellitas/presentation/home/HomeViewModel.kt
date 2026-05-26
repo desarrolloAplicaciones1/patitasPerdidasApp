@@ -28,9 +28,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val resolveReferenceLocationUseCase = appContainer.resolveReferenceLocationUseCase
     private val filterAlertsByRadiusUseCase = appContainer.filterAlertsByRadiusUseCase
 
+    private val networkMonitor = appContainer.networkMonitor
+
     private val _filterState = MutableStateFlow(HomeFilterState())
     private val _locationRefreshTrigger = MutableStateFlow(0)
     val filterState: StateFlow<HomeFilterState> = _filterState.asStateFlow()
+
+    val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true
+        )
 
     val uiState: StateFlow<HomeUiState> = combine(
         getActiveAlertsUseCase(),
