@@ -3,7 +3,6 @@ package com.uade.huellitas.presentation.profile.alerts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.domain.usecase.alert.GetMyAlertsUseCase
-import com.uade.huellitas.domain.usecase.auth.GetCurrentUserIdUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,8 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class MyAlertsViewModel(
-    private val getMyAlertsUseCase: GetMyAlertsUseCase,
-    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase
+    private val getMyAlertsUseCase: GetMyAlertsUseCase
 ) : ViewModel() {
 
     private val _retryTrigger = MutableStateFlow(0)
