@@ -504,4 +504,98 @@ Puntos a validar manualmente:
 
 ---
 
+## QA manual detallado
+
+### Precondiciones recomendadas
+
+Antes de ejecutar las pruebas manuales:
+
+- Tener `google-services.json` configurado en `app/`.
+- Tener habilitado `Authentication -> Email/Password` en Firebase.
+- Tener Firestore creado con permisos de lectura/escritura para usuarios autenticados.
+- Tener Firebase Storage habilitado con reglas compatibles para upload.
+- Tener `MAPS_API_KEY` configurada en `local.properties`.
+- Tener un emulador o dispositivo con GPS disponible.
+- Si se quiere probar onboarding desde cero, limpiar datos de la app.
+
+### Flujos a chequear
+
+| Flujo | Que hacer | Resultado esperado | Red flags / posible bug |
+|---|---|---|---|
+| Primer arranque / onboarding | Abrir la app con datos limpios. Avanzar onboarding y cerrarla. Reabrir. | El onboarding aparece solo la primera vez. Luego va a login o splash normal. | El onboarding vuelve a mostrarse siempre o nunca aparece. |
+| Registro | Crear un usuario nuevo con email y contrasena validos. | La cuenta se crea en Firebase Auth y la app navega al feed. | Error `This operation is not allowed`, loop infinito, usuario no aparece en Firebase. |
+| Login | Iniciar sesion con un usuario existente. | Ingresa al feed y el nombre del usuario queda visible en perfil/home. | Credenciales validas pero no navega, nombre vacio, perfil sin hidratar. |
+| Recuperar contrasena | Desde login, tocar `Olvidaste tu contrasena?` con un email valido. | La app muestra confirmacion y Firebase envia el mail. | No hay feedback, error silencioso, Firebase no registra el envio. |
+| Logout | Cerrar sesion desde perfil. | La app vuelve al login y no deja acceder a pantallas autenticadas. | Sigue entrando al feed sin loguearse o conserva estado inconsistente. |
+| Home sin filtros | Entrar al feed sin aplicar filtros. | Muestra avisos activos disponibles cerca de la ubicacion de referencia. | Feed vacio con documentos existentes y ubicacion correcta. |
+| Busqueda por nombre | Escribir parte del nombre de una mascota en el buscador. | El listado se filtra en tiempo real sin romper otros filtros. | No cambia el listado, no ignora mayusculas/acentos, queda trabado. |
+| Filtro por especie / tipo | Aplicar filtros de perro/gato y perdido/encontrado. | Solo aparecen avisos que cumplan el criterio. | Mezcla avisos fuera del filtro o limpiar filtros no restaura la lista. |
+| Filtro por radio GPS | Cambiar el radio de alertas en Home o Perfil. | El feed se recalcula en base a la ubicacion actual o fallback configurado. | No cambia nada, muestra resultados lejanos, o vacia el feed incorrectamente. |
+| Home vacio | Forzar una combinacion sin resultados. | Se muestra estado vacio claro y opcion para limpiar filtros. | Pantalla en blanco, spinner infinito, mensaje ambiguo. |
+| Abrir detalle | Tocar una alerta desde Home o Mapa. | Navega al detalle con foto, especie, raza, color, zona, contacto y estado. | Pantalla error, datos faltantes, campos mezclados. |
+| Contactar por WhatsApp | Abrir un aviso con telefono y tocar `Contactar por WhatsApp`. | Abre intent a WhatsApp o navegador con numero y mensaje prearmado. | Boton activo sin telefono, URL invalida, crash. |
+| Crear alerta sin foto | Publicar una alerta completando campos obligatorios sin imagen. | Se guarda, aparece en Firestore, y luego en feed/reportes segun ubicacion/filtros. | Spinner infinito, no aparece en Firestore, error silencioso. |
+| Crear alerta con foto | Repetir publicacion pero adjuntando imagen. | Ademas del documento en Firestore, la foto sube a Firebase Storage y el detalle la muestra. | Documento sin imagen, upload fallido sin feedback, URL rota. |
+| Crear alerta con ubicacion | Crear aviso con barrio/zona. | La direccion se geocodifica razonablemente y cae cerca de la ubicacion esperada. | Barrio ambiguo resuelto en otro pais o coordenadas absurdas. |
+| Editar alerta propia | Desde un aviso propio, editar nombre, raza, color, tamano, collar, zona, telefono y descripcion. | Cambios persistidos local y remotamente; el detalle refleja los nuevos valores. | Solo se actualiza parte del formulario, no sincroniza, o rompe el detalle. |
+| Resolver alerta | Marcar una alerta propia como resuelta. | Desaparece del Home, sigue visible en `Mis reportes`/`Mis avisos` como historial resuelto. | Sigue visible en Home, se puede resolver infinitamente, no cambia badge/estado. |
+| Eliminar alerta | Eliminar una alerta propia. | Se borra del detalle, del feed y de Firestore. | Sigue apareciendo localmente o falla sin feedback. |
+| Mis reportes / Mis avisos | Entrar a perfil y a la pantalla dedicada. Cambiar entre `Activos`, `Resueltos`, `Todos`. | Los filtros muestran subconjuntos correctos y permiten abrir el detalle. | Mezcla estados, no actualiza al resolver, contador visual incorrecto. |
+| Editar perfil basico | Cambiar nombre, telefono y ubicacion. Guardar. | Se persiste en Room, Firestore y se refleja en el perfil. | El cambio desaparece al relanzar, no impacta en Firebase o queda inconsistente. |
+| Cambiar foto de perfil | Elegir imagen desde galeria y guardar perfil. | La imagen se sube a Storage, se guarda URL, y aparece en perfil. | Upload sin feedback, avatar no cambia, URL invalida. |
+| Cambiar contrasena | Editar perfil y completar nueva contrasena + confirmacion. | Si cumple validaciones, Firebase actualiza la contrasena y la app informa exito. | Acepta contrasenas invalidas, no confirma mismatch, falla silenciosamente. |
+| Tema del sistema | Activar `Seguir tema del sistema`, cambiar el modo del dispositivo. | La app acompana el tema del sistema automaticamente. | No cambia al cambiar el sistema o queda clavada en un tema. |
+| Tema manual | Desactivar `Seguir tema del sistema` y usar `Tema oscuro`. | La app respeta el toggle manual. | El switch no hace efecto o queda bloqueado cuando no deberia. |
+| Modo offline lectura | Abrir Home online, luego cortar conexion y volver al feed. | La app sigue mostrando cache local de Room. | Feed vacio sin motivo o crash al no tener red. |
+| Offline al crear aviso | Crear un aviso sin conexion. | Debe guardarse localmente y mostrar que quedo pendiente de sincronizacion o que no se pudo subir. | Se pierde el aviso, no hay feedback o queda cargando indefinidamente. |
+| Sync al reconectar | Volver a tener red luego de trabajar offline. | Los avisos pendientes deberian intentar sincronizarse y quedar consistentes con Firestore. | El dato queda solo local permanentemente o se duplica. |
+| Mapa con permiso | Abrir mapa aceptando permiso de ubicacion. | Carga tiles reales, centra cerca del usuario y muestra avisos/pins validos. | Fondo gris, sin pines, ANR o centro en ubicacion incoherente. |
+| Mapa sin permiso | Denegar permiso y volver a entrar. | Usa fallback del perfil o default sin romper la pantalla. | Pantalla vacia, crash, loop pidiendo permiso. |
+| Cambio de ubicacion GPS | Simular otra ubicacion en el emulador y volver a Home/Mapa. | Recalcula cercania y cambia el conjunto de avisos visibles. | Mantiene resultados viejos o ignora el GPS nuevo. |
+
+### Casos de error que conviene forzar
+
+- Intentar login con password incorrecta.
+- Intentar registro con email ya usado.
+- Crear aviso con campos obligatorios vacios.
+- Editar perfil con contrasenas distintas.
+- Publicar alerta sin permisos de red o con Firestore/Storage mal configurados.
+- Denegar ubicacion y verificar fallback.
+- Subir una imagen grande o cambiar avatar con conexion lenta.
+
+### Sistemas externos a observar durante QA
+
+Mientras se prueban los flujos, conviene mirar estos sistemas:
+
+- Firebase Authentication:
+  - alta de usuarios
+  - login
+  - password reset
+- Firestore:
+  - coleccion `alerts`
+  - coleccion `users`
+  - cambios al editar, resolver y eliminar
+- Firebase Storage:
+  - uploads de fotos de alertas
+  - uploads de avatares
+- Google Maps / API Key:
+  - render del mapa
+  - markers
+- GPS / emulador:
+  - ubicacion actual
+  - cambios de radio y recenter del mapa
+
+### Criterio practico para dar una funcionalidad por sana
+
+Una funcionalidad deberia considerarse estable si:
+
+- funciona en UI sin errores visibles
+- persiste correctamente localmente
+- sincroniza bien con Firebase cuando corresponde
+- sobrevive a cerrar y reabrir la app
+- no deja estados inconsistentes entre Home, Detalle, Perfil y Firestore
+- tiene feedback claro cuando algo falla
+
+---
+
 *TP Integrador - Desarrollo de Aplicaciones I - UADE - 2026*
