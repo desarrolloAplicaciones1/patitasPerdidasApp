@@ -1,6 +1,9 @@
-﻿package com.uade.huellitas.presentation.alert.create
+package com.uade.huellitas.presentation.alert.create
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -32,6 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,10 +53,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -59,6 +67,7 @@ import com.uade.huellitas.domain.model.PetType
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.StatusFound
 import com.uade.huellitas.ui.theme.Urbanist
+import kotlinx.coroutines.launch
 
 @Composable
 fun CreateAlertScreen(
@@ -68,7 +77,10 @@ fun CreateAlertScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var nameError by remember { mutableStateOf<String?>(null) }
     var descriptionError by remember { mutableStateOf<String?>(null) }
     var barrioError by remember { mutableStateOf<String?>(null) }
@@ -76,281 +88,308 @@ fun CreateAlertScreen(
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> selectedImageUri = uri }
+    ) { uri: Uri? ->
+        uri?.let { viewModel.onPhotoSelected(it) }
+    }
 
-    LaunchedEffect(uiState) {
-        if (uiState is CreateAlertUiState.Success) {
-            viewModel.resetState()
-            onAlertCreated()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            imagePickerLauncher.launch("image/*")
+        } else {
+            scope.launch { snackbarHostState.showSnackbar("Necesitamos acceso a tus fotos para agregar una imagen") }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Reportar mascota",
-                fontFamily = Urbanist,
-                fontWeight = FontWeight.Normal,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .padding(bottom = 4.dp)
-                    .drawBehind {
-                        val strokeWidth = 2.dp.toPx()
-                        val y = size.height
-                        drawLine(HuellitasTeal, Offset(0f, y), Offset(size.width, y), strokeWidth)
-                    }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFFE8F7F6))
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Cerrar",
-                    tint = HuellitasTeal,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
+    val openGallery = {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            Manifest.permission.READ_MEDIA_IMAGES
+        else
+            Manifest.permission.READ_EXTERNAL_STORAGE
 
+        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            imagePickerLauncher.launch("image/*")
+        } else {
+            permissionLauncher.launch(permission)
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        when (val s = uiState) {
+            is CreateAlertUiState.Success -> {
+                viewModel.resetState()
+                onAlertCreated()
+            }
+            is CreateAlertUiState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+            }
+            else -> {}
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            if (uiState is CreateAlertUiState.Error) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = (uiState as CreateAlertUiState.Error).message,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            }
-
-            SectionLabel("FOTO")
-            PhotoPickerBox(
-                imageUri = selectedImageUri,
-                onClick = { imagePickerLauncher.launch("image/*") }
-            )
-
-            SectionLabel("ESTADO")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AlertType.entries.forEach { type ->
-                    val isSelected = formState.alertType == type
-                    val bgColor = when {
-                        isSelected && type == AlertType.LOST -> Color(0xFFF43F47)
-                        isSelected && type == AlertType.FOUND -> StatusFound
-                        else -> Color(0xFFF5F5F5)
-                    }
-                    Button(
-                        onClick = { viewModel.onAlertTypeChange(type) },
-                        modifier = Modifier.weight(1f).height(42.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = bgColor,
-                            contentColor = if (isSelected) Color.White else Color(0xFF888888)
-                        )
-                    ) {
-                        Text(
-                            text = if (type == AlertType.LOST) "Perdido" else "Encontrado",
-                            fontFamily = Urbanist,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-
-            SectionLabel("NOMBRE DEL ANIMAL *")
-            OutlinedTextField(
-                value = formState.petName,
-                onValueChange = { viewModel.onPetNameChange(it); nameError = null },
-                placeholder = { Text("Ej. Buddy, Luna...", color = Color.Gray, fontFamily = Urbanist) },
-                singleLine = true,
-                isError = nameError != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
-            )
-            if (nameError != null) {
-                Text(nameError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
-            }
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    SectionLabel("ESPECIE")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SmallChip("Perro", formState.petType == PetType.DOG) {
-                            viewModel.onPetTypeChange(PetType.DOG)
-                        }
-                        SmallChip("Gato", formState.petType == PetType.CAT) {
-                            viewModel.onPetTypeChange(PetType.CAT)
-                        }
-                    }
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    SectionLabel("CASTRADO")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SmallChip("No", !formState.isCastrated) { viewModel.onIsCastratedChange(false) }
-                        SmallChip("Si", formState.isCastrated) { viewModel.onIsCastratedChange(true) }
-                    }
-                }
-            }
-
-            SectionLabel("TAMANIO")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Chico", "Mediano", "Grande").forEach { size ->
-                    SmallChip(size, formState.size == size) { viewModel.onSizeChange(size) }
-                }
-            }
-
-            SectionLabel("COLLAR")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallChip("No", !formState.hasCollar) { viewModel.onHasCollarChange(false) }
-                SmallChip("Si", formState.hasCollar) { viewModel.onHasCollarChange(true) }
-            }
-
-            SectionLabel("DESCRIPCION *")
-            OutlinedTextField(
-                value = formState.description,
-                onValueChange = { viewModel.onDescriptionChange(it); descriptionError = null },
-                placeholder = { Text("Cualquier detalle que ayude...", color = Color.Gray, fontFamily = Urbanist) },
-                singleLine = false,
-                minLines = 4,
-                maxLines = 6,
-                isError = descriptionError != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
-            )
-            if (descriptionError != null) {
-                Text(descriptionError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
-            }
-
-            SectionLabel("BARRIO *")
-            OutlinedTextField(
-                value = formState.address,
-                onValueChange = { viewModel.onLocationChange(0.0, 0.0, it); barrioError = null },
-                placeholder = { Text("Ej. Palermo, CABA", color = Color.Gray, fontFamily = Urbanist) },
-                singleLine = true,
-                isError = barrioError != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
-            )
-            if (barrioError != null) {
-                Text(barrioError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
-            }
-
-            SectionLabel("COLOR")
-            OutlinedTextField(
-                value = formState.color,
-                onValueChange = viewModel::onColorChange,
-                placeholder = { Text("Ej. Tricolor", color = Color.Gray, fontFamily = Urbanist) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
-            )
-
-            SectionLabel("TELEFONO DE CONTACTO *")
-            OutlinedTextField(
-                value = formState.contactPhone,
-                onValueChange = { viewModel.onContactPhoneChange(it); phoneError = null },
-                placeholder = { Text("Ej. +54 11 1234-5678", color = Color.Gray, fontFamily = Urbanist) },
-                singleLine = true,
-                isError = phoneError != null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(3.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = HuellitasTeal,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
-            )
-            if (phoneError != null) {
-                Text(phoneError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
-            Button(
-                onClick = {
-                    nameError = if (formState.petName.isBlank()) "El nombre es obligatorio" else null
-                    descriptionError = if (formState.description.isBlank()) "La descripcion es obligatoria" else null
-                    barrioError = if (formState.address.isBlank()) "El barrio es obligatorio" else null
-                    phoneError = if (formState.contactPhone.isBlank()) "El telefono es obligatorio" else null
-                    if (nameError == null && descriptionError == null && barrioError == null && phoneError == null) {
-                        viewModel.submitAlert(selectedImageUri?.toString())
-                    }
-                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .navigationBarsPadding()
-                    .height(52.dp),
-                enabled = uiState !is CreateAlertUiState.Loading,
-                shape = RoundedCornerShape(3.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (uiState is CreateAlertUiState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        "Publicar",
-                        fontFamily = Urbanist,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = Color.White
+                Text(
+                    text = "Reportar mascota",
+                    fontFamily = Urbanist,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .drawBehind {
+                            val strokeWidth = 2.dp.toPx()
+                            val y = size.height
+                            drawLine(HuellitasTeal, Offset(0f, y), Offset(size.width, y), strokeWidth)
+                        }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFFE8F7F6))
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = HuellitasTeal,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SectionLabel("FOTO")
+                PhotoPickerBox(
+                    imageUri = formState.selectedPhotoUri,
+                    onClick = openGallery
+                )
+
+                SectionLabel("ESTADO")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AlertType.entries.forEach { type ->
+                        val isSelected = formState.alertType == type
+                        val bgColor = when {
+                            isSelected && type == AlertType.LOST -> Color(0xFFF43F47)
+                            isSelected && type == AlertType.FOUND -> StatusFound
+                            else -> Color(0xFFF5F5F5)
+                        }
+                        Button(
+                            onClick = { viewModel.onAlertTypeChange(type) },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = bgColor,
+                                contentColor = if (isSelected) Color.White else Color(0xFF888888)
+                            )
+                        ) {
+                            Text(
+                                text = if (type == AlertType.LOST) "Perdido" else "Encontrado",
+                                fontFamily = Urbanist,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
+                SectionLabel("NOMBRE DEL ANIMAL *")
+                OutlinedTextField(
+                    value = formState.petName,
+                    onValueChange = { viewModel.onPetNameChange(it); nameError = null },
+                    placeholder = { Text("Ej. Buddy, Luna...", color = Color.Gray, fontFamily = Urbanist) },
+                    singleLine = true,
+                    isError = nameError != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(3.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HuellitasTeal,
+                        unfocusedBorderColor = Color(0xFFDDDDDD)
+                    )
+                )
+                if (nameError != null) {
+                    Text(nameError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        SectionLabel("ESPECIE")
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SmallChip("Perro", formState.petType == PetType.DOG) {
+                                viewModel.onPetTypeChange(PetType.DOG)
+                            }
+                            SmallChip("Gato", formState.petType == PetType.CAT) {
+                                viewModel.onPetTypeChange(PetType.CAT)
+                            }
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        SectionLabel("CASTRADO")
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SmallChip("No", !formState.isCastrated) { viewModel.onIsCastratedChange(false) }
+                            SmallChip("Si", formState.isCastrated) { viewModel.onIsCastratedChange(true) }
+                        }
+                    }
+                }
+
+                SectionLabel("TAMANIO")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Chico", "Mediano", "Grande").forEach { size ->
+                        SmallChip(size, formState.size == size) { viewModel.onSizeChange(size) }
+                    }
+                }
+
+                SectionLabel("COLLAR")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SmallChip("No", !formState.hasCollar) { viewModel.onHasCollarChange(false) }
+                    SmallChip("Si", formState.hasCollar) { viewModel.onHasCollarChange(true) }
+                }
+
+                SectionLabel("DESCRIPCION *")
+                OutlinedTextField(
+                    value = formState.description,
+                    onValueChange = { viewModel.onDescriptionChange(it); descriptionError = null },
+                    placeholder = { Text("Cualquier detalle que ayude...", color = Color.Gray, fontFamily = Urbanist) },
+                    singleLine = false,
+                    minLines = 4,
+                    maxLines = 6,
+                    isError = descriptionError != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(3.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HuellitasTeal,
+                        unfocusedBorderColor = Color(0xFFDDDDDD)
+                    )
+                )
+                if (descriptionError != null) {
+                    Text(descriptionError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
+                }
+
+                SectionLabel("BARRIO *")
+                OutlinedTextField(
+                    value = formState.address,
+                    onValueChange = { viewModel.onLocationChange(0.0, 0.0, it); barrioError = null },
+                    placeholder = { Text("Ej. Palermo, CABA", color = Color.Gray, fontFamily = Urbanist) },
+                    singleLine = true,
+                    isError = barrioError != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(3.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HuellitasTeal,
+                        unfocusedBorderColor = Color(0xFFDDDDDD)
+                    )
+                )
+                if (barrioError != null) {
+                    Text(barrioError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
+                }
+
+                SectionLabel("COLOR")
+                OutlinedTextField(
+                    value = formState.color,
+                    onValueChange = viewModel::onColorChange,
+                    placeholder = { Text("Ej. Tricolor", color = Color.Gray, fontFamily = Urbanist) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(3.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HuellitasTeal,
+                        unfocusedBorderColor = Color(0xFFDDDDDD)
+                    )
+                )
+
+                SectionLabel("TELEFONO DE CONTACTO *")
+                OutlinedTextField(
+                    value = formState.contactPhone,
+                    onValueChange = { viewModel.onContactPhoneChange(it); phoneError = null },
+                    placeholder = { Text("Ej. +54 11 1234-5678", color = Color.Gray, fontFamily = Urbanist) },
+                    singleLine = true,
+                    isError = phoneError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(3.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HuellitasTeal,
+                        unfocusedBorderColor = Color(0xFFDDDDDD)
+                    )
+                )
+                if (phoneError != null) {
+                    Text(phoneError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
+                Button(
+                    onClick = {
+                        nameError = if (formState.petName.isBlank()) "El nombre es obligatorio" else null
+                        descriptionError = if (formState.description.isBlank()) "La descripcion es obligatoria" else null
+                        barrioError = if (formState.address.isBlank()) "El barrio es obligatorio" else null
+                        phoneError = if (formState.contactPhone.isBlank()) "El telefono es obligatorio" else null
+                        if (nameError == null && descriptionError == null && barrioError == null && phoneError == null) {
+                            viewModel.submitAlert()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .navigationBarsPadding()
+                        .height(52.dp),
+                    enabled = uiState !is CreateAlertUiState.Loading,
+                    shape = RoundedCornerShape(3.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = HuellitasTeal)
+                ) {
+                    if (uiState is CreateAlertUiState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "Publicar",
+                            fontFamily = Urbanist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 

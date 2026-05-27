@@ -40,11 +40,8 @@ class AlertRepository(
         try {
             remoteDataSource.saveAlert(alert)
             alertDao.insert(alert.toEntity(pendingSync = false))
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "El aviso se guardo solo en este dispositivo. No se pudo sincronizar con Firebase: ${e.message ?: "error desconocido"}.",
-                e
-            )
+        } catch (_: Exception) {
+            // Saved locally with pendingSync=true — Firestore sync will retry when online
         }
     }
 

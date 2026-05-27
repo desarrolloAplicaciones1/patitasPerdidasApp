@@ -1,6 +1,7 @@
-﻿package com.uade.huellitas.presentation.alert.create
+package com.uade.huellitas.presentation.alert.create
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.HuellitasApplication
@@ -45,10 +46,14 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
         _formState.value = _formState.value.copy(latitude = lat, longitude = lng, address = address)
     }
 
-    fun submitAlert(photoUri: String? = null) {
+    fun onPhotoSelected(uri: Uri) {
+        _formState.value = _formState.value.copy(selectedPhotoUri = uri)
+    }
+
+    fun submitAlert() {
         val form = _formState.value
         val ownerId = getCurrentUserIdUseCase() ?: run {
-            _uiState.value = CreateAlertUiState.Error("No hay sesion activa")
+            _uiState.value = CreateAlertUiState.Error("No hay sesion activa. Iniciá sesión e intentá de nuevo.")
             return
         }
 
@@ -56,42 +61,43 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.value = CreateAlertUiState.Loading
             try {
                 val now = System.currentTimeMillis()
-                val userLocationHint = getCurrentUserUseCase().first()?.location
-                val geocodingQuery = buildGeocodingQuery(form.address, userLocationHint)
-                val resolvedLocation = geocodeAddressUseCase(geocodingQuery)
-                    ?: Location(
-                        latitude = form.latitude ?: 0.0,
-                        longitude = form.longitude ?: 0.0,
-                        address = form.address.ifBlank { null }
-                    )
-                val uploadedPhotoUrl = if (!photoUri.isNullOrBlank()) {
-                    uploadAlertPhotoUseCase(photoUri)
-                } else {
-                    null
+
+                val userLocationHint = try {
+                    getCurrentUserUseCase().first()?.location
+                } catch (_: Exception) { null }
+
+                val resolvedLocation = resolveLocation(form, userLocationHint)
+
+                val uploadedPhotoUrl = form.selectedPhotoUri?.let { uri ->
+                    runCatching { uploadAlertPhotoUseCase(uri.toString()) }.getOrNull()
                 }
+
                 val alert = Alert(
                     id = UUID.randomUUID().toString(),
                     ownerId = ownerId,
                     type = form.alertType,
                     status = AlertStatus.ACTIVE,
-                    petName = form.petName,
+                    petName = form.petName.trim(),
                     petType = form.petType,
                     breed = form.breed.ifBlank { null },
                     color = form.color.ifBlank { null },
                     size = form.size,
                     hasCollar = form.hasCollar,
                     isCastrated = form.isCastrated,
-                    description = form.description,
+                    description = form.description.trim(),
                     photoUrls = if (uploadedPhotoUrl != null) listOf(uploadedPhotoUrl) else emptyList(),
                     location = resolvedLocation,
                     contactPhone = form.contactPhone.ifBlank { null },
                     createdAt = now,
                     updatedAt = now
                 )
+
                 createAlertUseCase(alert)
                 _uiState.value = CreateAlertUiState.Success
             } catch (e: Exception) {
-                _uiState.value = CreateAlertUiState.Error(e.message ?: "Error al publicar aviso")
+                _uiState.value = CreateAlertUiState.Error(
+                    e.message ?: "No se pudo publicar. Revisá tu conexión."
+                )
             }
         }
     }
@@ -100,20 +106,29 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.value = CreateAlertUiState.Idle
     }
 
+    private suspend fun resolveLocation(form: CreateAlertFormState, userLocationHint: String?): Location {
+        if (form.address.isNotBlank()) {
+            val query = buildGeocodingQuery(form.address, userLocationHint)
+            val geocoded = runCatching { geocodeAddressUseCase(query) }.getOrNull()
+            if (geocoded != null) return geocoded
+        }
+        return Location(
+            latitude = form.latitude ?: DEFAULT_LATITUDE,
+            longitude = form.longitude ?: DEFAULT_LONGITUDE,
+            address = form.address.ifBlank { null }
+        )
+    }
+
     private fun buildGeocodingQuery(address: String, userLocationHint: String?): String {
         val normalizedAddress = address.trim()
-        if (normalizedAddress.isBlank()) return normalizedAddress
         if (normalizedAddress.contains(",")) return normalizedAddress
-
-        val contextHint = userLocationHint
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?: DEFAULT_LOCATION_HINT
-
+        val contextHint = userLocationHint?.trim()?.takeIf { it.isNotEmpty() } ?: DEFAULT_LOCATION_HINT
         return "$normalizedAddress, $contextHint"
     }
 
     companion object {
         private const val DEFAULT_LOCATION_HINT = "CABA, Argentina"
+        private const val DEFAULT_LATITUDE = -34.6037
+        private const val DEFAULT_LONGITUDE = -58.3816
     }
 }

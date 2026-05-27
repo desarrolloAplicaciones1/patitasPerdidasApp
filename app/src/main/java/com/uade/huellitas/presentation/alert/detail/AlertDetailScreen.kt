@@ -43,40 +43,60 @@ fun AlertDetailScreen(
     viewModel: AlertDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(alertId) { viewModel.loadAlert(alertId) }
     LaunchedEffect(uiState) {
-        if (uiState is AlertDetailUiState.Deleted || uiState is AlertDetailUiState.Resolved) {
+        if (uiState is AlertDetailUiState.Deleted) {
             onBack()
         }
     }
-
-    when (val state = uiState) {
-        is AlertDetailUiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = HuellitasTeal)
-            }
+    LaunchedEffect(snackbarMessage) {
+        if (snackbarMessage != null) {
+            snackbarHostState.showSnackbar(snackbarMessage!!)
+            viewModel.clearSnackbarMessage()
         }
-        is AlertDetailUiState.Error -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onBack) { Text("Volver") }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = uiState) {
+            is AlertDetailUiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = HuellitasTeal)
                 }
             }
+            is AlertDetailUiState.Error -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = onBack) { Text("Volver") }
+                    }
+                }
+            }
+            is AlertDetailUiState.Success -> {
+                AlertDetailContent(
+                    alert = state.alert,
+                    isOwner = state.isOwner,
+                    onBack = onBack,
+                    onUpdate = viewModel::updateAlert,
+                    onSaveNameEdit = viewModel::saveNameEdit,
+                    onSaveDescriptionEdit = viewModel::saveDescriptionEdit,
+                    onSaveColorEdit = viewModel::saveColorEdit,
+                    onResolve = viewModel::resolveAlert,
+                    onDelete = viewModel::deleteAlert
+                )
+            }
+            else -> Unit
         }
-        is AlertDetailUiState.Success -> {
-            AlertDetailContent(
-                alert = state.alert,
-                isOwner = state.isOwner,
-                onBack = onBack,
-                onUpdate = viewModel::updateAlert,
-                onResolve = viewModel::resolveAlert,
-                onDelete = viewModel::deleteAlert
-            )
-        }
-        else -> Unit
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 
@@ -86,6 +106,9 @@ private fun AlertDetailContent(
     isOwner: Boolean,
     onBack: () -> Unit,
     onUpdate: (String, String, String, String, String, String, String, Boolean?) -> Unit,
+    onSaveNameEdit: (String) -> Unit,
+    onSaveDescriptionEdit: (String) -> Unit,
+    onSaveColorEdit: (String) -> Unit,
     onResolve: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -258,7 +281,27 @@ private fun AlertDetailContent(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = HuellitasTeal,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        ),
+                        trailingIcon = {
+                            Row {
+                                IconButton(onClick = { editName = alert.petName }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Cancelar"
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    onSaveNameEdit(editName)
+                                    isEditing = false
+                                }) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        contentDescription = "Guardar"
+                                    )
+                                }
+                            }
+                        }
                     )
                 } else {
                     Text(
@@ -270,35 +313,19 @@ private fun AlertDetailContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                if (isOwner && !isResolved) {
+                if (isOwner && !isResolved && !isEditing) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .size(36.dp).clip(CircleShape)
-                            .background(
-                                if (isEditing) Color(0xFFFFEEEE) else Color(0xFFE8F7F6)
-                            ),
+                            .background(Color(0xFFE8F7F6)),
                         contentAlignment = Alignment.Center
                     ) {
-                        IconButton(onClick = {
-                            if (isEditing) {
-                                editName = alert.petName
-                                editBreed = alert.breed ?: ""
-                                editDescription = alert.description
-                                editColor = alert.color ?: ""
-                                editSize = alert.size ?: ""
-                                editAddress = alert.location.address.orEmpty()
-                                editContactPhone = alert.contactPhone.orEmpty()
-                                editHasCollar = alert.hasCollar
-                                isEditing = false
-                            } else {
-                                isEditing = true
-                            }
-                        }) {
+                        IconButton(onClick = { isEditing = true }) {
                             Icon(
-                                if (isEditing) Icons.Default.Close else Icons.Default.Edit,
-                                contentDescription = if (isEditing) "Cancelar" else "Editar",
-                                tint = if (isEditing) Color.Red else HuellitasTeal,
+                                Icons.Default.Edit,
+                                contentDescription = "Editar",
+                                tint = HuellitasTeal,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -351,11 +378,38 @@ private fun AlertDetailContent(
                                 fontSize = 11.sp, color = HuellitasTeal, letterSpacing = 0.8.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             if (isEditing) {
-                                BasicInlineField(
-                                    value = editColor,
-                                    onValueChange = { editColor = it },
-                                    placeholder = "Ej. Dorado"
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    BasicInlineField(
+                                        value = editColor,
+                                        onValueChange = { editColor = it },
+                                        placeholder = "Ej. Dorado",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = { editColor = alert.color ?: "" },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Cancelar",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            onSaveColorEdit(editColor)
+                                            isEditing = false
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            contentDescription = "Guardar",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             } else {
                                 Text(
                                     editColor.ifBlank { "-" }, fontFamily = Urbanist,
@@ -406,11 +460,47 @@ private fun AlertDetailContent(
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        DetailCell(
-                            "ESTADO",
-                            if (isResolved) "Resuelto" else "Activo",
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "ESTADO", fontFamily = Urbanist, fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp, color = HuellitasTeal, letterSpacing = 0.8.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            if (isOwner && !isResolved) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FilterChip(
+                                        selected = true,
+                                        onClick = {},
+                                        label = {
+                                            Text(
+                                                "Activo", fontFamily = Urbanist,
+                                                fontSize = 12.sp
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = HuellitasTeal.copy(alpha = 0.15f),
+                                            selectedLabelColor = HuellitasTeal
+                                        )
+                                    )
+                                    FilterChip(
+                                        selected = false,
+                                        onClick = { showResolveDialog = true },
+                                        label = {
+                                            Text(
+                                                "Resuelto", fontFamily = Urbanist,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    if (isResolved) "Resuelto" else "Activo",
+                                    fontFamily = Urbanist, fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
@@ -547,6 +637,24 @@ private fun AlertDetailContent(
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(onClick = { editDescription = alert.description }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cancelar")
+                        }
+                        IconButton(onClick = {
+                            onSaveDescriptionEdit(editDescription)
+                            isEditing = false
+                        }) {
+                            Icon(
+                                Icons.Default.Check,
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = "Guardar"
+                            )
+                        }
+                    }
                 } else {
                     Text(
                         text = editDescription,
@@ -610,11 +718,11 @@ private fun AlertDetailContent(
                         fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
                 }
 
-                // Resuelto / Eliminar — solo para el dueño del aviso
-                if (isOwner) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Eliminar — solo para el dueño del aviso
+                if (isOwner) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (isResolved) {
                         Surface(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(4.dp),
                             color = Color(0xFFE8F7F6),
                             border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal.copy(alpha = 0.5f))
@@ -633,20 +741,10 @@ private fun AlertDetailContent(
                                 )
                             }
                         }
-                    } else {
-                        OutlinedButton(
-                            onClick = { showResolveDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(4.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, HuellitasTeal)
-                        ) {
-                            Text("Resuelto", fontFamily = Urbanist,
-                                fontWeight = FontWeight.Normal, color = HuellitasTeal)
-                        }
                     }
                     OutlinedButton(
                         onClick = { showDeleteDialog = true },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(4.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
                     ) {
@@ -665,11 +763,11 @@ private fun AlertDetailContent(
 private fun BasicInlineField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .border(1.dp, HuellitasTeal.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {

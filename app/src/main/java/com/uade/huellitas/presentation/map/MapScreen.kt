@@ -75,7 +75,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.uade.huellitas.domain.model.PetType
-import com.uade.huellitas.presentation.location.RequestLocationPermissionEffect
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.Urbanist
 
@@ -89,14 +91,28 @@ fun MapScreen(
     viewModel: MapViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     var showRadiusSheet by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(true) }
     var selectedAlert by remember { mutableStateOf<MapAlert?>(null) }
     var tempRadius by remember { mutableStateOf(radiusOptions[1]) }
 
-    RequestLocationPermissionEffect(
-        onPermissionGranted = viewModel::refreshReferenceLocation
-    )
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) viewModel.loadUserLocation()
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
 
     LaunchedEffect(uiState) {
         val success = uiState as? MapUiState.Success ?: return@LaunchedEffect
@@ -125,6 +141,7 @@ fun MapScreen(
             is MapUiState.Success -> {
                 GoogleMapView(
                     state = state,
+                    userLocation = userLocation,
                     onAlertTap = { selectedAlert = it }
                 )
 
@@ -136,6 +153,22 @@ fun MapScreen(
                         showRadiusSheet = true
                     }
                 )
+
+                if (userLocation == null) {
+                    Text(
+                        "Activá la ubicación para ver alertas de tu zona",
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.9f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontFamily = Urbanist,
+                        fontSize = 12.sp,
+                        color = Color(0xFF666666)
+                    )
+                }
 
                 selectedAlert?.let { alert ->
                     Box(
@@ -285,6 +318,7 @@ fun MapScreen(
 @Composable
 private fun GoogleMapView(
     state: MapUiState.Success,
+    userLocation: LatLng?,
     onAlertTap: (MapAlert) -> Unit
 ) {
     val center = remember(state.center) {
@@ -303,6 +337,14 @@ private fun GoogleMapView(
         cameraPositionState.animate(
             CameraUpdateFactory.newLatLngZoom(center, 13f)
         )
+    }
+
+    LaunchedEffect(userLocation) {
+        userLocation?.let {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(it, 14f)
+            )
+        }
     }
 
     GoogleMap(
