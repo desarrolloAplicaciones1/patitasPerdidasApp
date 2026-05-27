@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +74,7 @@ fun EditProfileScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        viewModel.onAvatarSelected(uri?.toString())
+        uri?.let { viewModel.onPhotoSelected(it) }
     }
 
     if (uiState is EditProfileUiState.Success) {
@@ -157,13 +158,15 @@ fun EditProfileScreen(
                                 modifier = Modifier
                                     .size(92.dp)
                                     .clip(CircleShape)
+                                    .clickable { imagePickerLauncher.launch("image/*") }
                             )
                         } else {
                             Box(
                                 modifier = Modifier
                                     .size(92.dp)
                                     .clip(CircleShape)
-                                    .background(HuellitasTeal),
+                                    .background(HuellitasTeal)
+                                    .clickable { imagePickerLauncher.launch("image/*") },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(

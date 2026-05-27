@@ -16,6 +16,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.CurrentLocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.model.LatLng
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,6 +37,11 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val calculateDistanceMetersUseCase = appContainer.calculateDistanceMetersUseCase
     private val filterAlertsByRadiusUseCase = appContainer.filterAlertsByRadiusUseCase
     private val locationRefreshTrigger = MutableStateFlow(0)
+    private val fusedLocationClient =
+        LocationServices.getFusedLocationProviderClient(application)
+
+    private val _userLocation = MutableStateFlow<LatLng?>(null)
+    val userLocation: StateFlow<LatLng?> = _userLocation.asStateFlow()
 
     val uiState: StateFlow<MapUiState> = combine(
         getActiveAlertsUseCase(),
@@ -72,6 +85,32 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshReferenceLocation() {
         locationRefreshTrigger.update { current -> current + 1 }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun loadUserLocation() {
+        val hasPermission =
+            ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+        if (!hasPermission) return
+
+        refreshReferenceLocation()
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            location?.let {
+                _userLocation.value = LatLng(it.latitude, it.longitude)
+            } ?: run {
+                val request = CurrentLocationRequest.Builder()
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .build()
+                fusedLocationClient.getCurrentLocation(request, null)
+                    .addOnSuccessListener { loc ->
+                        loc?.let { _userLocation.value = LatLng(loc.latitude, loc.longitude) }
+                    }
+            }
+        }
     }
 
     private fun Alert.toMapAlert(center: Location): MapAlert {

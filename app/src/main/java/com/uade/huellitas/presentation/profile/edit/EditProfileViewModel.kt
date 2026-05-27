@@ -1,6 +1,7 @@
 ﻿package com.uade.huellitas.presentation.profile.edit
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.HuellitasApplication
@@ -61,6 +62,26 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
 
     fun onAvatarSelected(uri: String?) {
         _formState.value = _formState.value.copy(selectedAvatarUri = uri)
+    }
+
+    fun onPhotoSelected(uri: Uri) {
+        val user = currentUser ?: return
+        viewModelScope.launch {
+            try {
+                _uiState.value = EditProfileUiState.Loading
+                val downloadUrl = uploadProfilePhotoUseCase(uri.toString())
+                val updatedUser = user.copy(avatarUrl = downloadUrl)
+                updateUserProfileUseCase(updatedUser)
+                currentUser = updatedUser
+                _formState.value = _formState.value.copy(
+                    avatarUrl = downloadUrl,
+                    selectedAvatarUri = null
+                )
+                _uiState.value = EditProfileUiState.Editing
+            } catch (e: Exception) {
+                _uiState.value = EditProfileUiState.Error(e.message ?: "Error al subir la foto")
+            }
+        }
     }
 
     fun onPasswordChange(value: String) {

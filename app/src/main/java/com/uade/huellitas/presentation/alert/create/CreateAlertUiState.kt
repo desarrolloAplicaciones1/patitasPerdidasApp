@@ -1,5 +1,6 @@
 ﻿package com.uade.huellitas.presentation.alert.create
 
+import android.net.Uri
 import com.uade.huellitas.domain.model.AlertType
 import com.uade.huellitas.domain.model.PetType
 
@@ -23,5 +24,6 @@ data class CreateAlertFormState(
     val contactPhone: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val address: String = ""
+    val address: String = "",
+    val selectedPhotoUri: Uri? = null
 )

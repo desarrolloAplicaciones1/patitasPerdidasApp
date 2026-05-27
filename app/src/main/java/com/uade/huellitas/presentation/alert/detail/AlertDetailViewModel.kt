@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.HuellitasApplication
+import com.uade.huellitas.domain.model.AlertStatus
 import com.uade.huellitas.domain.model.Location
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,13 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _uiState = MutableStateFlow<AlertDetailUiState>(AlertDetailUiState.Loading)
     val uiState: StateFlow<AlertDetailUiState> = _uiState.asStateFlow()
 
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
+
+    fun clearSnackbarMessage() {
+        _snackbarMessage.value = null
+    }
+
     fun loadAlert(alertId: String) {
         viewModelScope.launch {
             _uiState.value = AlertDetailUiState.Loading
@@ -41,11 +49,16 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun resolveAlert() {
-        val current = (_uiState.value as? AlertDetailUiState.Success)?.alert ?: return
+        val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
         viewModelScope.launch {
             try {
-                resolveAlertUseCase(current)
-                _uiState.value = AlertDetailUiState.Resolved
+                resolveAlertUseCase(currentState.alert)
+                val resolved = currentState.alert.copy(
+                    status = AlertStatus.RESOLVED,
+                    updatedAt = System.currentTimeMillis()
+                )
+                _uiState.value = AlertDetailUiState.Success(resolved, currentState.isOwner)
+                _snackbarMessage.value = "Aviso marcado como resuelto"
             } catch (e: Exception) {
                 _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al resolver aviso")
             }
@@ -84,6 +97,54 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
             } catch (e: Exception) {
                 _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al actualizar aviso")
+            }
+        }
+    }
+
+    fun saveNameEdit(newName: String) {
+        val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        viewModelScope.launch {
+            try {
+                val updated = currentState.alert.copy(
+                    petName = newName.trim(),
+                    updatedAt = System.currentTimeMillis()
+                )
+                updateAlertUseCase(updated)
+                _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
+            } catch (e: Exception) {
+                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar nombre")
+            }
+        }
+    }
+
+    fun saveDescriptionEdit(description: String) {
+        val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        viewModelScope.launch {
+            try {
+                val updated = currentState.alert.copy(
+                    description = description.trim(),
+                    updatedAt = System.currentTimeMillis()
+                )
+                updateAlertUseCase(updated)
+                _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
+            } catch (e: Exception) {
+                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar descripción")
+            }
+        }
+    }
+
+    fun saveColorEdit(color: String) {
+        val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        viewModelScope.launch {
+            try {
+                val updated = currentState.alert.copy(
+                    color = color.trim().ifBlank { null },
+                    updatedAt = System.currentTimeMillis()
+                )
+                updateAlertUseCase(updated)
+                _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
+            } catch (e: Exception) {
+                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar color")
             }
         }
     }
