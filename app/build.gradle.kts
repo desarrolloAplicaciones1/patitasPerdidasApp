@@ -8,6 +8,10 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+val localProps = Properties().also { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
+}
+
 android {
     namespace = "com.uade.huellitas"
     compileSdk = 35
@@ -19,10 +23,12 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        val localProps = Properties().also { props ->
-            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
-        }
         manifestPlaceholders["MAPS_API_KEY"] = localProps.getProperty("MAPS_API_KEY", "")
+        buildConfigField(
+            "String",
+            "FIREBASE_STORAGE_BUCKET",
+            "\"${localProps.getProperty("FIREBASE_STORAGE_BUCKET", "").trim()}\""
+        )
     }
 
     buildTypes {
@@ -42,6 +48,7 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
