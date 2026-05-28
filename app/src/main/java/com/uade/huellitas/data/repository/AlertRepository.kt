@@ -1,6 +1,6 @@
 package com.uade.huellitas.data.repository
 
-import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.uade.huellitas.data.local.dao.AlertDao
 import com.uade.huellitas.data.mapper.toDomain
 import com.uade.huellitas.data.mapper.toEntity
@@ -26,7 +26,7 @@ class AlertRepository(
             remoteDataSource.getActiveAlerts()
                 .forEach { alertDao.insert(it.toEntity(pendingSync = false)) }
         } catch (_: Exception) {
-            // Sin red — usa el cache de Room
+            // Sin red; usa el cache de Room
         }
         // 2. Emite desde Room (ya tiene los datos de Firestore o el cache offline)
         emitAll(alertDao.getActiveAlerts().map { list -> list.map { it.toDomain() } })
@@ -39,19 +39,33 @@ class AlertRepository(
         alertDao.getById(id)?.toDomain()
 
     override suspend fun saveAlert(alert: Alert) {
-        alertDao.insert(alert.toEntity(pendingSync = true))
+        val pendingEntity = alert.toEntity(pendingSync = true)
+        alertDao.insert(pendingEntity)
         try {
             remoteDataSource.saveAlert(alert)
             alertDao.insert(alert.toEntity(pendingSync = false))
-        } catch (_: Exception) {
-            // Saved locally with pendingSync=true — Firestore sync will retry when online
+        } catch (e: Exception) {
+            if (e.isPermissionDenied()) {
+                alertDao.delete(pendingEntity)
+                throw IllegalStateException("No tenes permisos para crear este aviso.", e)
+            }
+            // Saved locally with pendingSync=true; Firestore sync will retry when online.
         }
     }
 
     override suspend fun updateAlert(alert: Alert) {
+        val previousEntity = alertDao.getById(alert.id)
         alertDao.update(alert.toEntity(pendingSync = true))
-        remoteDataSource.updateAlert(alert)
-        alertDao.update(alert.toEntity(pendingSync = false))
+        try {
+            remoteDataSource.updateAlert(alert)
+            alertDao.update(alert.toEntity(pendingSync = false))
+        } catch (e: Exception) {
+            if (e.isPermissionDenied()) {
+                previousEntity?.let { alertDao.insert(it) }
+                throw IllegalStateException("No tenes permisos para modificar este aviso.", e)
+            }
+            throw e
+        }
     }
 
     override suspend fun resolveAlert(alert: Alert) {
@@ -63,16 +77,23 @@ class AlertRepository(
     }
 
     override suspend fun deleteAlert(alert: Alert) {
-        remoteDataSource.deleteAlert(alert.id)
-        alertDao.delete(alert.toEntity())
-        deleteAlertPhotos(alert.photoUrls)
+        try {
+            remoteDataSource.deleteAlert(alert.id)
+            alertDao.delete(alert.toEntity())
+        } catch (e: Exception) {
+            if (e.isPermissionDenied()) {
+                throw IllegalStateException("No tenes permisos para eliminar este aviso.", e)
+            }
+            throw e
+        }
     }
 
     override suspend fun syncFromFirestore() {
         try {
             remoteDataSource.getActiveAlerts()
                 .forEach { alertDao.insert(it.toEntity(pendingSync = false)) }
-        } catch (e: Exception) { }
+        } catch (_: Exception) {
+        }
     }
 
     companion object {
@@ -109,3 +130,6 @@ class AlertRepository(
             }
     }
 }
+
+private fun Exception.isPermissionDenied(): Boolean =
+    (this as? FirebaseFirestoreException)?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED

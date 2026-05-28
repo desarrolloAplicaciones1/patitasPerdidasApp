@@ -47,9 +47,9 @@ import com.uade.huellitas.ui.theme.HuellitasTeal
 import com.uade.huellitas.ui.theme.Urbanist
 
 private enum class MyAlertFilter {
+    ALL,
     ACTIVE,
-    RESOLVED,
-    ALL
+    RESOLVED
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +60,7 @@ fun MyAlertsScreen(
     onNavigateToDetail: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var currentFilter by remember { mutableStateOf(MyAlertFilter.ACTIVE) }
+    var currentFilter by remember { mutableStateOf(MyAlertFilter.ALL) }
 
     Scaffold(
         topBar = {
@@ -219,7 +219,7 @@ private fun AlertsFilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        MyAlertFilter.entries.forEach { filter ->
+        listOf(MyAlertFilter.ALL, MyAlertFilter.ACTIVE, MyAlertFilter.RESOLVED).forEach { filter ->
             val selected = filter == currentFilter
             Surface(
                 onClick = { onChange(filter) },

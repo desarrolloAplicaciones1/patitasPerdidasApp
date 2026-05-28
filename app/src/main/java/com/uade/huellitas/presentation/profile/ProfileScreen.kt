@@ -480,7 +480,15 @@ private fun SettingsSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = HuellitasTeal)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = HuellitasTeal,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color(0xFFD7D0DD),
+                uncheckedBorderColor = Color(0xFFB7AFC0),
+                disabledUncheckedTrackColor = Color(0xFFE7E3EA),
+                disabledUncheckedBorderColor = Color(0xFFD1CAD8)
+            )
         )
     }
 }
