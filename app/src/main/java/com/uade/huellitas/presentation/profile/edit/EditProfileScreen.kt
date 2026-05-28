@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -210,16 +209,6 @@ fun EditProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    TextButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(
-                            Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = HuellitasTeal,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cambiar foto", fontFamily = Urbanist, color = HuellitasTeal)
-                    }
                 }
             }
 
