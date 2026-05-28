@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -24,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -181,19 +181,23 @@ fun EditProfileScreen(
 
                         Surface(
                             onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.offset(x = 4.dp, y = 4.dp),
                             shape = CircleShape,
-                            color = HuellitasTeal,
+                            color = MaterialTheme.colorScheme.surface,
                             shadowElevation = 4.dp
                         ) {
                             Box(
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .size(28.dp)
+                                    .background(HuellitasTeal, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Edit,
                                     contentDescription = "Cambiar foto",
                                     tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
@@ -210,16 +214,6 @@ fun EditProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    TextButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(
-                            Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = HuellitasTeal,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cambiar foto", fontFamily = Urbanist, color = HuellitasTeal)
-                    }
                 }
             }
 
