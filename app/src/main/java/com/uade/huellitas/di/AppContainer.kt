@@ -40,6 +40,7 @@ import com.uade.huellitas.domain.usecase.location.CalculateDistanceMetersUseCase
 import com.uade.huellitas.domain.usecase.location.GeocodeAddressUseCase
 import com.uade.huellitas.domain.usecase.location.GetCurrentDeviceLocationUseCase
 import com.uade.huellitas.domain.usecase.location.ResolveReferenceLocationUseCase
+import com.uade.huellitas.domain.usecase.media.DeletePhotoUseCase
 import com.uade.huellitas.domain.usecase.media.UploadAlertPhotoUseCase
 import com.uade.huellitas.domain.usecase.media.UploadProfilePhotoUseCase
 import com.uade.huellitas.domain.usecase.pet.DeletePetUseCase
@@ -133,6 +134,7 @@ class AppContainer(context: Context) {
         geocodeAddressUseCase
     )
     val filterAlertsByRadiusUseCase = FilterAlertsByRadiusUseCase(calculateDistanceMetersUseCase)
+    val deletePhotoUseCase = DeletePhotoUseCase(photoStorageRepository)
     val uploadAlertPhotoUseCase = UploadAlertPhotoUseCase(photoStorageRepository)
     val uploadProfilePhotoUseCase = UploadProfilePhotoUseCase(photoStorageRepository)
 

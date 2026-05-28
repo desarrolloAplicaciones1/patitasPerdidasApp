@@ -5,6 +5,6 @@ import com.uade.huellitas.domain.repository.PhotoStorageRepository
 class UploadAlertPhotoUseCase(
     private val photoStorageRepository: PhotoStorageRepository
 ) {
-    suspend operator fun invoke(localUri: String) =
-        photoStorageRepository.uploadAlertPhoto(localUri)
+    suspend operator fun invoke(ownerId: String, localUri: String) =
+        photoStorageRepository.uploadAlertPhoto(ownerId, localUri)
 }

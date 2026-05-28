@@ -1,6 +1,7 @@
 ﻿package com.uade.huellitas.domain.repository
 
 interface PhotoStorageRepository {
-    suspend fun uploadAlertPhoto(localUri: String): String
-    suspend fun uploadProfilePhoto(localUri: String): String
+    suspend fun uploadAlertPhoto(ownerId: String, localUri: String): String
+    suspend fun uploadProfilePhoto(userId: String, localUri: String): String
+    suspend fun deletePhoto(remoteUrl: String)
 }

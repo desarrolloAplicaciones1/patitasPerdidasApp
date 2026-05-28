@@ -2,6 +2,7 @@
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.uade.huellitas.HuellitasApplication
@@ -18,6 +19,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
     private val getCurrentUserUseCase = appContainer.getCurrentUserUseCase
     private val updateUserProfileUseCase = appContainer.updateUserProfileUseCase
     private val changePasswordUseCase = appContainer.changePasswordUseCase
+    private val deletePhotoUseCase = appContainer.deletePhotoUseCase
     private val uploadProfilePhotoUseCase = appContainer.uploadProfilePhotoUseCase
 
     private val _uiState = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
@@ -67,16 +69,23 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
     fun onPhotoSelected(uri: Uri) {
         val user = currentUser ?: return
         viewModelScope.launch {
+            val previousAvatarUrl = user.avatarUrl
             try {
                 _uiState.value = EditProfileUiState.Loading
-                val downloadUrl = uploadProfilePhotoUseCase(uri.toString())
+                val downloadUrl = uploadProfilePhotoUseCase(user.uid, uri.toString())
                 val updatedUser = user.copy(avatarUrl = downloadUrl)
-                updateUserProfileUseCase(updatedUser)
+                try {
+                    updateUserProfileUseCase(updatedUser)
+                } catch (e: Exception) {
+                    rollbackUploadedAvatar(downloadUrl)
+                    throw e
+                }
                 currentUser = updatedUser
                 _formState.value = _formState.value.copy(
                     avatarUrl = downloadUrl,
                     selectedAvatarUri = null
                 )
+                cleanupPreviousAvatar(previousAvatarUrl, downloadUrl)
                 _uiState.value = EditProfileUiState.Editing
             } catch (e: Exception) {
                 _uiState.value = EditProfileUiState.Error(e.message ?: "Error al subir la foto")
@@ -118,21 +127,28 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 _uiState.value = EditProfileUiState.Loading
+                val previousAvatarUrl = user.avatarUrl
 
                 val uploadedAvatarUrl = form.selectedAvatarUri
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { selectedUri -> uploadProfilePhotoUseCase(selectedUri) }
-                    ?: user.avatarUrl
+                    ?.let { selectedUri -> uploadProfilePhotoUseCase(user.uid, selectedUri) }
+                val resolvedAvatarUrl = uploadedAvatarUrl ?: user.avatarUrl
 
                 val updatedUser = user.copy(
                     name = form.name.trim(),
                     phone = form.phone.trim().ifBlank { null },
                     location = form.location.trim().ifBlank { null },
-                    avatarUrl = uploadedAvatarUrl
+                    avatarUrl = resolvedAvatarUrl
                 )
 
-                updateUserProfileUseCase(updatedUser)
+                try {
+                    updateUserProfileUseCase(updatedUser)
+                } catch (e: Exception) {
+                    uploadedAvatarUrl?.let { rollbackUploadedAvatar(it) }
+                    throw e
+                }
                 currentUser = updatedUser
+                uploadedAvatarUrl?.let { cleanupPreviousAvatar(previousAvatarUrl, it) }
 
                 if (form.password.isNotBlank()) {
                     changePasswordUseCase(form.password)
@@ -154,6 +170,28 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
 
     fun consumeSuccess() {
         _uiState.value = EditProfileUiState.Editing
+    }
+
+    private suspend fun cleanupPreviousAvatar(previousAvatarUrl: String?, currentAvatarUrl: String) {
+        val obsoleteAvatarUrl = previousAvatarUrl
+            ?.takeIf { it.isNotBlank() && it != currentAvatarUrl }
+            ?: return
+
+        runCatching { deletePhotoUseCase(obsoleteAvatarUrl) }
+            .onFailure { error ->
+                Log.w(TAG, "No se pudo borrar el avatar anterior", error)
+            }
+    }
+
+    private suspend fun rollbackUploadedAvatar(uploadedAvatarUrl: String) {
+        runCatching { deletePhotoUseCase(uploadedAvatarUrl) }
+            .onFailure { error ->
+                Log.w(TAG, "No se pudo revertir el avatar subido tras un fallo de perfil", error)
+            }
+    }
+
+    companion object {
+        private const val TAG = "EditProfileViewModel"
     }
 }
 
