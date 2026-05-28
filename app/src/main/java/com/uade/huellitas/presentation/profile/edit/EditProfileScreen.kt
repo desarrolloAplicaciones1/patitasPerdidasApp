@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -180,19 +181,23 @@ fun EditProfileScreen(
 
                         Surface(
                             onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.offset(x = 4.dp, y = 4.dp),
                             shape = CircleShape,
-                            color = HuellitasTeal,
+                            color = MaterialTheme.colorScheme.surface,
                             shadowElevation = 4.dp
                         ) {
                             Box(
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .size(28.dp)
+                                    .background(HuellitasTeal, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Edit,
                                     contentDescription = "Cambiar foto",
                                     tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
