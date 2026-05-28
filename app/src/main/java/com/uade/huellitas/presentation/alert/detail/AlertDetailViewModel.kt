@@ -1,4 +1,4 @@
-﻿package com.uade.huellitas.presentation.alert.detail
+package com.uade.huellitas.presentation.alert.detail
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -50,6 +50,8 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     fun resolveAlert() {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
                 resolveAlertUseCase(currentState.alert)
@@ -60,7 +62,7 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 _uiState.value = AlertDetailUiState.Success(resolved, currentState.isOwner)
                 _snackbarMessage.value = "Aviso marcado como resuelto"
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al resolver aviso")
+                _snackbarMessage.value = e.message ?: "Error al resolver aviso"
             }
         }
     }
@@ -76,6 +78,8 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
         hasCollar: Boolean?
     ) {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
                 val resolvedLocation = resolveLocation(
@@ -96,13 +100,15 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 updateAlertUseCase(updated)
                 _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al actualizar aviso")
+                _snackbarMessage.value = e.message ?: "Error al actualizar aviso"
             }
         }
     }
 
     fun saveNameEdit(newName: String) {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
                 val updated = currentState.alert.copy(
@@ -112,13 +118,15 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 updateAlertUseCase(updated)
                 _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar nombre")
+                _snackbarMessage.value = e.message ?: "Error al guardar nombre"
             }
         }
     }
 
     fun saveDescriptionEdit(description: String) {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
                 val updated = currentState.alert.copy(
@@ -128,13 +136,15 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 updateAlertUseCase(updated)
                 _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar descripción")
+                _snackbarMessage.value = e.message ?: "Error al guardar descripcion"
             }
         }
     }
 
     fun saveColorEdit(color: String) {
         val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
                 val updated = currentState.alert.copy(
@@ -144,21 +154,29 @@ class AlertDetailViewModel(application: Application) : AndroidViewModel(applicat
                 updateAlertUseCase(updated)
                 _uiState.value = AlertDetailUiState.Success(updated, currentState.isOwner)
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al guardar color")
+                _snackbarMessage.value = e.message ?: "Error al guardar color"
             }
         }
     }
 
     fun deleteAlert() {
-        val current = (_uiState.value as? AlertDetailUiState.Success)?.alert ?: return
+        val currentState = (_uiState.value as? AlertDetailUiState.Success) ?: return
+        if (!ensureOwner(currentState)) return
+
         viewModelScope.launch {
             try {
-                deleteAlertUseCase(current)
+                deleteAlertUseCase(currentState.alert)
                 _uiState.value = AlertDetailUiState.Deleted
             } catch (e: Exception) {
-                _uiState.value = AlertDetailUiState.Error(e.message ?: "Error al eliminar aviso")
+                _snackbarMessage.value = e.message ?: "Error al eliminar aviso"
             }
         }
+    }
+
+    private fun ensureOwner(currentState: AlertDetailUiState.Success): Boolean {
+        if (currentState.isOwner) return true
+        _snackbarMessage.value = "Solo el autor puede modificar este aviso"
+        return false
     }
 
     private suspend fun resolveLocation(currentLocation: Location, editedAddress: String): Location {

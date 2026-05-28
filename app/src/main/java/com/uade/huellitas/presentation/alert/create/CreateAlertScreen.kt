@@ -340,6 +340,13 @@ fun CreateAlertScreen(
                 )
                 if (phoneError != null) {
                     Text(phoneError!!, color = Color.Red, fontFamily = Urbanist, fontSize = 12.sp)
+                } else if (formState.contactPhone.isNotBlank()) {
+                    Text(
+                        "Usamos tu telefono de perfil por defecto, pero podes cambiarlo para este aviso.",
+                        color = Color(0xFF888888),
+                        fontFamily = Urbanist,
+                        fontSize = 12.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
