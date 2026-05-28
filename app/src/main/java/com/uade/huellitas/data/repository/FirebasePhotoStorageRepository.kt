@@ -11,19 +11,20 @@ class FirebasePhotoStorageRepository(
     private val firebaseStorage: FirebaseStorage = createFirebaseStorage()
 ) : PhotoStorageRepository {
 
-    override suspend fun uploadAlertPhoto(localUri: String): String {
-        return uploadPhoto(localUri, "alerts")
+    override suspend fun uploadAlertPhoto(ownerId: String, localUri: String): String {
+        return uploadPhoto(ownerId, localUri, "alerts")
     }
 
-    override suspend fun uploadProfilePhoto(localUri: String): String {
-        return uploadPhoto(localUri, "avatars")
+    override suspend fun uploadProfilePhoto(userId: String, localUri: String): String {
+        return uploadPhoto(userId, localUri, "avatars")
     }
 
-    private suspend fun uploadPhoto(localUri: String, folder: String): String {
+    private suspend fun uploadPhoto(userId: String, localUri: String, folder: String): String {
+        require(userId.isNotBlank()) { "No hay un usuario autenticado para subir la imagen" }
         require(localUri.isNotBlank()) { "La foto seleccionada no es valida" }
 
         return try {
-            val remoteRef = firebaseStorage.reference.child("$folder/${UUID.randomUUID()}.jpg")
+            val remoteRef = firebaseStorage.reference.child("$folder/$userId/${UUID.randomUUID()}.jpg")
             remoteRef.putFile(Uri.parse(localUri)).await()
             remoteRef.downloadUrl.await().toString()
         } catch (e: Exception) {

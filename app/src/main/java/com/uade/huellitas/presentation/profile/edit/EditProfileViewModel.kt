@@ -69,7 +69,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 _uiState.value = EditProfileUiState.Loading
-                val downloadUrl = uploadProfilePhotoUseCase(uri.toString())
+                val downloadUrl = uploadProfilePhotoUseCase(user.uid, uri.toString())
                 val updatedUser = user.copy(avatarUrl = downloadUrl)
                 updateUserProfileUseCase(updatedUser)
                 currentUser = updatedUser
@@ -121,7 +121,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
 
                 val uploadedAvatarUrl = form.selectedAvatarUri
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { selectedUri -> uploadProfilePhotoUseCase(selectedUri) }
+                    ?.let { selectedUri -> uploadProfilePhotoUseCase(user.uid, selectedUri) }
                     ?: user.avatarUrl
 
                 val updatedUser = user.copy(
