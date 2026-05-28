@@ -1,5 +1,6 @@
 package com.uade.huellitas.data.repository
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.uade.huellitas.data.local.dao.AlertDao
 import com.uade.huellitas.data.mapper.toDomain
@@ -80,6 +81,7 @@ class AlertRepository(
         try {
             remoteDataSource.deleteAlert(alert.id)
             alertDao.delete(alert.toEntity())
+            deleteAlertPhotos(alert.photoUrls)
         } catch (e: Exception) {
             if (e.isPermissionDenied()) {
                 throw IllegalStateException("No tenes permisos para eliminar este aviso.", e)
