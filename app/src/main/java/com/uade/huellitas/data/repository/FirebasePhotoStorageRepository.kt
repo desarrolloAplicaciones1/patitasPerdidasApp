@@ -19,6 +19,19 @@ class FirebasePhotoStorageRepository(
         return uploadPhoto(userId, localUri, "avatars")
     }
 
+    override suspend fun deletePhoto(remoteUrl: String) {
+        require(remoteUrl.isNotBlank()) { "La URL remota de la imagen no es valida" }
+
+        try {
+            firebaseStorage.getReferenceFromUrl(remoteUrl).delete().await()
+        } catch (e: Exception) {
+            throw IllegalStateException(
+                "No se pudo borrar la imagen anterior de Firebase Storage.",
+                e
+            )
+        }
+    }
+
     private suspend fun uploadPhoto(userId: String, localUri: String, folder: String): String {
         require(userId.isNotBlank()) { "No hay un usuario autenticado para subir la imagen" }
         require(localUri.isNotBlank()) { "La foto seleccionada no es valida" }
