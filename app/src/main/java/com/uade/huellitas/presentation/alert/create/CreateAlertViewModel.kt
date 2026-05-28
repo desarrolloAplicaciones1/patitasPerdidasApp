@@ -13,6 +13,7 @@ import com.uade.huellitas.domain.model.PetType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -32,6 +33,20 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
     private val _formState = MutableStateFlow(CreateAlertFormState())
     val formState: StateFlow<CreateAlertFormState> = _formState.asStateFlow()
 
+    private var contactPhoneInitialized = false
+
+    init {
+        viewModelScope.launch {
+            getCurrentUserUseCase().collectLatest { user ->
+                val phone = user?.phone?.trim().orEmpty()
+                if (!contactPhoneInitialized && phone.isNotEmpty()) {
+                    _formState.value = _formState.value.copy(contactPhone = phone)
+                    contactPhoneInitialized = true
+                }
+            }
+        }
+    }
+
     fun onAlertTypeChange(type: AlertType) { _formState.value = _formState.value.copy(alertType = type) }
     fun onPetNameChange(value: String) { _formState.value = _formState.value.copy(petName = value) }
     fun onPetTypeChange(type: PetType) { _formState.value = _formState.value.copy(petType = type) }
@@ -41,7 +56,10 @@ class CreateAlertViewModel(application: Application) : AndroidViewModel(applicat
     fun onHasCollarChange(value: Boolean) { _formState.value = _formState.value.copy(hasCollar = value) }
     fun onIsCastratedChange(value: Boolean) { _formState.value = _formState.value.copy(isCastrated = value) }
     fun onDescriptionChange(value: String) { _formState.value = _formState.value.copy(description = value) }
-    fun onContactPhoneChange(value: String) { _formState.value = _formState.value.copy(contactPhone = value) }
+    fun onContactPhoneChange(value: String) {
+        contactPhoneInitialized = true
+        _formState.value = _formState.value.copy(contactPhone = value)
+    }
     fun onLocationChange(lat: Double, lng: Double, address: String) {
         _formState.value = _formState.value.copy(latitude = lat, longitude = lng, address = address)
     }
