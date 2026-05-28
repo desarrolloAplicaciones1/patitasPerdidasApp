@@ -78,8 +78,11 @@ class AppContainer(context: Context) {
     private val petRepository: PetRepositoryContract =
         PetRepositoryImpl(database.petDao())
 
+    private val photoStorageRepository: PhotoStorageRepositoryContract =
+        FirebasePhotoStorageRepository()
+
     private val alertRepository: AlertRepositoryContract =
-        AlertRepositoryImpl(database.alertDao(), firestoreAlertDataSource)
+        AlertRepositoryImpl(database.alertDao(), firestoreAlertDataSource, photoStorageRepository)
 
     private val settingsRepository: SettingsRepositoryContract =
         PreferencesSettingsRepository(context)
@@ -89,9 +92,6 @@ class AppContainer(context: Context) {
 
     private val deviceLocationRepository: DeviceLocationRepositoryContract =
         AndroidDeviceLocationRepository(context)
-
-    private val photoStorageRepository: PhotoStorageRepositoryContract =
-        FirebasePhotoStorageRepository()
 
     val getCurrentUserIdUseCase = GetCurrentUserIdUseCase(userRepository)
     val isLoggedInUseCase = IsLoggedInUseCase(userRepository)
